@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Erstattungen">
+<meta name="theme-color" content="#EDF0F3">
+<meta name="format-detection" content="telephone=no">
+<title>Erstattungen Beihilfe &amp; KV</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root{
+  /* Layout: iOS-artige Einspalter-App – Statusleiste mit Sync oben, große Überschrift, Übersicht, Jahresgrenzen, Rechnungskarten, Statistik; Plus-Knopf unten */
+  --bg:#EDF0F3; --card:#FFFFFF; --ink:#121920; --muted:#66717D; --line:#DCE1E7; --soft:#F4F6F8;
+  --accent:#0B6E77; --hero:#0C3B41; --hero-ink:#F2FAFA;
+  --todo:#D0433A; --wait:#C98200; --done:#1D9455; --own:#7457E8; --hold:#2B74E0; --prev:#0E8A7E;
+  --todo-bg:#FCEBE9; --wait-bg:#FDF3DF; --done-bg:#E4F5EC; --own-bg:#EFEBFE; --hold-bg:#E5EFFD; --prev-bg:#E2F4F1;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
+  --r:18px; --bar:rgba(237,240,243,.82);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1013; --card:#161C21; --ink:#EDF1F4; --muted:#8D98A3; --line:#25303A; --soft:#1C242A;
+    --accent:#44B8C2; --hero:#0F2E33; --hero-ink:#EAF7F8;
+    --todo:#FF6D61; --wait:#F2B134; --done:#3DCB80; --own:#A792FF; --hold:#6AA8FF; --prev:#43C9B6;
+    --todo-bg:#3A1C1A; --wait-bg:#372A10; --done-bg:#12301F; --own-bg:#261F45; --hold-bg:#142847; --prev-bg:#0F2F2B;
+    --bar:rgba(12,16,19,.82);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1013; --card:#161C21; --ink:#EDF1F4; --muted:#8D98A3; --line:#25303A; --soft:#1C242A;
+  --accent:#44B8C2; --hero:#0F2E33; --hero-ink:#EAF7F8;
+  --todo:#FF6D61; --wait:#F2B134; --done:#3DCB80; --own:#A792FF; --hold:#6AA8FF; --prev:#43C9B6;
+  --todo-bg:#3A1C1A; --wait-bg:#372A10; --done-bg:#12301F; --own-bg:#261F45; --hold-bg:#142847; --prev-bg:#0F2F2B;
+  --bar:rgba(12,16,19,.82);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.35;-webkit-text-size-adjust:100%}
+body{padding-bottom:calc(150px + env(safe-area-inset-bottom));overscroll-behavior-y:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;-webkit-user-select:none;user-select:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+
+/* Statusleiste (iOS-Navigationsleiste) */
+.topbar{position:sticky;top:0;z-index:25;padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:background .2s,border-color .2s;border-bottom:.5px solid transparent}
+.topbar.scrolled{background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom-color:var(--line)}
+.topbar .mini{position:absolute;left:50%;bottom:14px;pointer-events:none;font-weight:700;font-size:17px;opacity:0;transform:translate(-50%,4px);transition:all .2s;white-space:nowrap}
+.topbar.scrolled .mini{opacity:1;transform:translate(-50%,0)}
+.topbar.scrolled .sync span:last-child{max-width:96px}
+.topbar .right{flex:none}
+.sync{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px 0 10px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted);max-width:100%;justify-self:start;min-width:0}
+.sync .sd{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync b{color:var(--ink)}
+.sync.ok .sd{background:var(--done);animation:livePulse 2.4s infinite}
+.sync.busy .sd{background:var(--wait);animation:blink 1s infinite}
+.sync.warn .sd{background:var(--wait)}
+.sync.err{color:var(--todo)} .sync.err .sd{background:var(--todo)}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--done) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes blink{50%{opacity:.3}}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--card);display:grid;place-items:center;flex:none;border:1px solid var(--line)}
+.icon-btn svg{width:19px;height:19px}
+
+header{display:flex;align-items:center;gap:12px;padding:6px 0 12px}
+.appicon{width:46px;height:46px;border-radius:11px;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.12);overflow:hidden}
+.appicon svg{width:100%;height:100%;display:block}
+header h1{font-family:var(--display);font-size:32px;line-height:1.05;letter-spacing:-.02em;margin:0}
+header p{margin:2px 0 0;color:var(--muted);font-size:14px}
+
+.years{display:flex;gap:8px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:none}
+.years::-webkit-scrollbar{display:none}
+.chip{height:34px;padding:0 14px;border-radius:17px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:600;white-space:nowrap;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Übersicht */
+.hero{background:var(--hero);color:var(--hero-ink);border-radius:24px;padding:18px 18px 16px;display:grid;gap:12px}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hero .lbl{font-size:13px;font-weight:600;opacity:.75;letter-spacing:.02em}
+.hero .big{font-family:var(--display);font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1.05;margin-top:2px}
+.hero .paid{text-align:right;font-size:13px;opacity:.8}
+.hero .paid b{display:block;font-size:17px;opacity:1}
+.bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.12);gap:2px}
+.bar i{display:block;height:100%;min-width:3px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12.5px}
+.legend span{display:flex;align-items:center;gap:7px;opacity:.92;min-width:0}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
+.legend b{margin-left:auto;font-weight:600}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.tile{background:var(--card);border-radius:var(--r);padding:14px;border:1px solid var(--line);display:grid;gap:2px;align-content:start}
+.tile .t{font-size:13px;color:var(--muted);font-weight:600}
+.tile .v{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.tile .s{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:2px}
+.s.c-todo{color:var(--todo)} .s.c-wait{color:var(--wait)} .s.c-done{color:var(--done)} .s.c-own{color:var(--own)} .s.c-hold{color:var(--hold)}
+
+/* Jahr im Blick */
+.yc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-top:10px;overflow:hidden}
+.yc-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:14px 16px 4px}
+.yc-head h2{margin:0;font-size:17px;font-weight:700}
+.yc-head span{font-size:12.5px;color:var(--muted);text-align:right}
+.lim{padding:12px 16px 14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;border-top:1px solid var(--line)}
+.yc-head + .lim,.yc-head.meta + .lim{border-top:0}
+.yc-head.meta{display:block;padding-top:0;font-size:12.5px;color:var(--muted)}
+.lim-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.lim-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--lbg);color:var(--lc)}
+.lim-ic svg{width:19px;height:19px}
+.lim-tt{flex:1;min-width:0}
+.lim-tt b{display:block;font-size:14.5px}
+.lim-tt small{font-size:12.5px;color:var(--muted)}
+.badge{font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--lbg);color:var(--lc);white-space:nowrap}
+.meter{position:relative;height:12px;border-radius:6px;background:var(--lbg);overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--lc)}
+.meter-lbl{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.lim p{margin:0;font-size:13.5px;line-height:1.4}
+.lim p strong{color:var(--lc)}
+.lim .extra{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:flex-start}
+.lim .extra b{color:var(--prev)}
+.t-own{--lc:var(--own);--lbg:var(--own-bg)} .t-hold{--lc:var(--hold);--lbg:var(--hold-bg)}
+.t-done{--lc:var(--done);--lbg:var(--done-bg)} .t-todo{--lc:var(--todo);--lbg:var(--todo-bg)}
+
+/* Hinweise: Einreichen lohnt sich / Jahresabschluss */
+.alerts{display:grid;gap:10px;margin-bottom:12px}
+.alerts:empty{display:none}
+.alert{border-radius:22px;padding:18px;color:#fff;display:grid;gap:10px;position:relative;overflow:hidden}
+.alert::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.1)}
+.alert.a-go{background:linear-gradient(135deg,#1FA463,#0D6E4C);box-shadow:0 10px 30px rgba(29,148,85,.35);animation:goPulse 2.6s ease-in-out infinite}
+.alert.a-keep{background:linear-gradient(135deg,#3A86F0,#1E4FA8)}
+.alert.a-lost{background:linear-gradient(135deg,#E0534A,#A82E28)}
+.alert.a-soon{background:linear-gradient(135deg,#7B61F0,#4B35B8)}
+@keyframes goPulse{50%{box-shadow:0 10px 40px rgba(29,148,85,.6)}}
+.alert .a-top{display:flex;gap:12px;align-items:center;position:relative;z-index:1}
+.alert .a-ic{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none}
+.alert .a-ic svg{width:26px;height:26px}
+.alert h3{margin:0;font-size:20px;line-height:1.15;letter-spacing:-.01em}
+.alert .a-k{font-size:12.5px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.05em}
+.alert p{margin:0;font-size:14.5px;line-height:1.45;position:relative;z-index:1}
+.alert p b{font-weight:800}
+.alert .a-btns{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:1}
+.alert .a-btns button{height:40px;padding:0 16px;border-radius:12px;background:#fff;color:#0D3B2C;font-weight:700;font-size:14.5px}
+.alert .a-btns button.ghost{background:rgba(255,255,255,.2);color:#fff}
+.alert .a-dl{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;background:rgba(0,0,0,.18);border-radius:999px;padding:4px 10px;justify-self:start;position:relative;z-index:1}
+.yc-head .rep{height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--soft);font-size:13px;font-weight:600;color:var(--accent);display:inline-flex;align-items:center;gap:5px;flex:none}
+.yc-head .rep svg{width:15px;height:15px}
+.yc-head .meta{font-size:12.5px;color:var(--muted);padding:0 16px;margin-top:-2px}
+.rep-prev{display:grid;gap:10px}
+.rep-prev img{width:100%;border-radius:10px;border:1px solid var(--line);background:#fff;display:block}
+.rep-chips{display:flex;gap:8px;overflow-x:auto}
+.big-ic{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,#1FA463,#0D6E4C);color:#fff;display:grid;place-items:center;margin:4px auto 0}
+.big-ic svg{width:40px;height:40px}
+.celebrate h3{text-align:center;font-size:22px;margin:4px 0 0}
+.celebrate p{text-align:center;margin:0;font-size:15px;line-height:1.45;color:var(--muted)}
+.celebrate p b{color:var(--ink)}
+.blist{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.blist div{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14.5px}
+.blist div:last-child{border-bottom:0}
+.blist small{color:var(--muted)}
+
+/* Filter & Suche */
+.tools{display:grid;gap:8px;margin:20px 0 6px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{height:34px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:4px}
+.seg button[aria-pressed="true"]{background:var(--soft);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg .cnt{font-size:11px;min-width:17px;height:17px;border-radius:9px;background:var(--line);display:inline-grid;place-items:center;padding:0 4px;color:var(--ink)}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:42px;color:var(--muted)}
+.search svg{width:18px;height:18px;flex:none}
+.search input{flex:1;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);min-width:0;height:100%;-webkit-appearance:none;appearance:none}
+.search input:focus{outline:none}
+
+.month{display:flex;justify-content:space-between;align-items:baseline;margin:18px 4px 8px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.list{display:grid;gap:10px}
+.hint-swipe{font-size:12px;color:var(--muted);text-align:center;margin:10px 0 0}
+
+/* Rechnungskarte mit Wischen zum Löschen */
+.row{position:relative;border-radius:var(--r);overflow:hidden;background:var(--todo)}
+.row-act{position:absolute;right:0;top:0;bottom:0;width:92px;display:flex}
+.row-act button{flex:1;color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;gap:4px;align-content:center}
+.row-act svg{width:22px;height:22px}
+.bill{background:var(--card);border-radius:var(--r);border:1px solid var(--line);overflow:hidden;position:relative;transition:transform .25s cubic-bezier(.2,.8,.2,1);touch-action:pan-y}
+.bill.dragging{transition:none}
+.bill::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--st)}
+.bill.s-todo{--st:var(--todo)} .bill.s-wait{--st:var(--wait)} .bill.s-done{--st:var(--done)} .bill.s-hold{--st:var(--hold)}
+.bill-head{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 14px 10px 16px}
+.cat{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.cat svg{width:23px;height:23px}
+.bh-main{flex:1;min-width:0;display:grid;gap:3px}
+.bh-main .t{font-weight:650;font-size:16.5px;overflow-wrap:anywhere}
+.bh-main .sub{font-size:13px;color:var(--muted)}
+.pills{display:flex;flex-wrap:wrap;gap:4px}
+.amt{font-weight:700;font-size:17px;white-space:nowrap}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:10px}
+.p-todo{background:var(--todo-bg);color:var(--todo)} .p-wait{background:var(--wait-bg);color:var(--wait)} .p-done{background:var(--done-bg);color:var(--done)} .p-hold{background:var(--hold-bg);color:var(--hold)} .p-prev{background:var(--prev-bg);color:var(--prev)}
+.sides{display:grid;gap:6px;padding:0 12px 12px 16px}
+.side{display:grid;grid-template-columns:88px minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:stretch}
+.side-lbl{display:grid;align-content:center;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.2}
+.side-lbl b{font-size:15px;color:var(--sc);font-weight:700}
+.side-lbl small{font-size:11px;font-weight:600;color:var(--sc);line-height:1.2;margin-top:1px;opacity:.85}
+.side-lbl small.neg{color:var(--todo)}
+.side.st-todo{--sc:var(--todo)} .side.st-wait{--sc:var(--wait)} .side.st-done{--sc:var(--done)} .side.st-own{--sc:var(--own)} .side.st-hold{--sc:var(--hold)}
+.tick{height:56px;border-radius:12px;border:1.5px solid var(--line);display:flex;align-items:center;gap:7px;padding:4px 9px;font-size:13px;font-weight:600;color:var(--muted);text-align:left;transition:transform .12s ease,background .15s ease}
+.tick:active{transform:scale(.96)}
+.tick .box{width:20px;height:20px;border-radius:6px;border:1.5px solid currentColor;flex:none;display:grid;place-items:center;opacity:.7}
+.tick .box svg{width:14px;height:14px;opacity:0}
+.tick small{display:block;font-size:11px;font-weight:500;opacity:.85}
+.tick .tx{min-width:0;line-height:1.15}
+.tick.on{border-color:transparent}
+.tick.on .box{background:currentColor;opacity:1}
+.tick.on .box svg{opacity:1;color:var(--card)}
+.tick.sub.on{background:var(--wait-bg);color:var(--wait)}
+.tick.paid.on{background:var(--done-bg);color:var(--done)}
+.side.st-own .tick.sub.on{background:var(--own-bg);color:var(--own)}
+.side.st-hold .tick{border-style:dashed}
+
+.empty{text-align:center;color:var(--muted);padding:36px 16px;background:var(--card);border-radius:var(--r);border:1px dashed var(--line)}
+.empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+
+/* Statistik */
+.stats{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-top:24px;display:grid;gap:12px}
+.stats h2{margin:0;font-size:17px;display:flex;justify-content:space-between;align-items:baseline}
+.stats h2 span{font-size:12.5px;color:var(--muted);font-weight:500}
+.srow{display:grid;grid-template-columns:32px 1fr auto;gap:10px;align-items:center}
+.srow .cat{width:32px;height:32px;border-radius:9px}
+.srow .cat svg{width:18px;height:18px}
+.srow .nm{font-size:14px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.srow .nm small{color:var(--muted);font-weight:500}
+.srow .tr{height:6px;border-radius:3px;background:var(--soft);margin-top:5px;overflow:hidden}
+.srow .tr i{display:block;height:100%;border-radius:3px;background:var(--c)}
+.srow .am{font-size:14px;font-weight:700}
+
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom));height:56px;padding:0 24px 0 18px;border-radius:28px;background:var(--accent);color:#fff;font-weight:700;font-size:16.5px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(11,110,119,.35),0 2px 6px rgba(0,0,0,.15);z-index:20}
+.fab:active{transform:translateX(-50%) scale(.96)}
+.fab svg{width:22px;height:22px}
+
+/* Tab-Leiste (iOS) */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:22;display:grid;grid-template-columns:1fr 1fr;padding:6px 24px calc(4px + env(safe-area-inset-bottom));background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--line)}
+.tabbar button{display:grid;justify-items:center;gap:2px;padding:4px 0 2px;color:var(--muted);font-size:10.5px;font-weight:600;position:relative}
+.tabbar svg{width:27px;height:27px}
+.tabbar button[aria-current="page"]{color:var(--accent)}
+.tabbar button[aria-current="page"] svg{fill:color-mix(in srgb,var(--accent) 16%,transparent)}
+.tab-badge{position:absolute;top:0;left:calc(50% + 8px);min-width:18px;height:18px;border-radius:9px;background:var(--todo);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.page[hidden],.tab-badge[hidden]{display:none}
+header.ph{padding-top:6px}
+header.ph h1{font-size:34px}
+/* Beleg */
+.clip{display:inline-flex;vertical-align:-2px;margin-left:6px;color:var(--muted)}
+.clip svg{width:16px;height:16px}
+.photo-box{display:grid;gap:10px;padding:12px 14px}
+.photo-thumb{position:relative;border-radius:12px;overflow:hidden;background:var(--soft);border:1px solid var(--line);min-height:120px;display:grid;place-items:center;color:var(--muted);font-size:13.5px}
+.photo-thumb img{display:block;width:100%;max-height:300px;object-fit:cover}
+.photo-thumb .zoom{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600}
+.photo-actions{display:flex;gap:8px;flex-wrap:wrap}
+.photo-btn{height:40px;padding:0 14px;border-radius:11px;border:1px solid var(--line);background:var(--soft);font-weight:600;font-size:14.5px;color:var(--accent);display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.photo-btn svg{width:18px;height:18px}
+.photo-btn.del{color:var(--todo)}
+.photo-btn input{display:none}
+.viewer{position:fixed;inset:0;z-index:80;background:#000;display:grid;place-items:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.viewer[hidden]{display:none}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain;touch-action:pinch-zoom}
+.viewer-x{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;z-index:1}
+.viewer-x svg{width:20px;height:20px}
+
+/* Bottom Sheet, nach unten wegwischbar */
+.scrim{position:fixed;inset:0;background:rgba(5,10,14,.45);z-index:40;opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--bg);border-radius:22px 22px 0 0;max-height:calc(100% - env(safe-area-inset-top) - 24px);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.8,.2,1);max-width:600px;margin:0 auto;visibility:hidden;box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+.sheet.open{transform:none;visibility:visible}
+.sheet.dragging{transition:none}
+.sheet-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 16px 8px;position:relative;gap:8px;touch-action:none}
+.sheet-head::before{content:"";position:absolute;top:6px;left:50%;width:38px;height:5px;border-radius:3px;background:var(--line);transform:translateX(-50%)}
+.sheet-head h2{font-size:17px;margin:6px 0 0;font-weight:700;text-align:center}
+.sheet-head button{font-size:16px;color:var(--accent);font-weight:600;margin-top:6px;min-height:36px}
+.sheet-head button:first-child{justify-self:start}
+.sheet-head button:last-child{justify-self:end}
+.sheet-body{overflow-y:auto;padding:6px 16px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.sheet-body>*{flex:none}
+.group{background:var(--card);border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.field{display:grid;gap:4px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:0}
+.field label,.glabel{font-size:12.5px;color:var(--muted);font-weight:600}
+.field small{font-size:12px;color:var(--muted)}
+.glabel{margin:0 4px -6px;text-transform:uppercase;letter-spacing:.05em;font-size:12px}
+.field input,.field textarea{border:0;background:transparent;font:inherit;font-size:17px;color:var(--ink);padding:2px 0;width:100%;min-height:30px}
+.field textarea{font-size:13px;min-height:120px;font-family:ui-monospace,Menlo,monospace}
+.field input:focus,.field textarea:focus{outline:none}
+.money{display:flex;align-items:center;gap:6px}
+.money input{font-size:26px;font-weight:700}
+.money span{font-size:22px;font-weight:700;color:var(--muted)}
+.split{font-size:13px;color:var(--muted);line-height:1.4}
+.cgroup{padding:10px 12px 4px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px 10px 10px}
+.cats button{display:grid;justify-items:center;align-content:start;gap:5px;padding:8px 2px;border-radius:12px;font-size:11.5px;font-weight:600;color:var(--muted);border:1.5px solid transparent;text-align:center;line-height:1.15;hyphens:auto}
+.cats button .cat{width:40px;height:40px}
+.cats button[aria-pressed="true"]{border-color:var(--c);color:var(--ink);background:color-mix(in srgb,var(--c) 8%,transparent)}
+.st-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.st-row:last-child{border-bottom:0}
+.st-row .nm{font-weight:600;min-width:0}
+.st-row .nm small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+.st-row input[type=date]{font:inherit;font-size:15px;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:5px 8px;margin-top:6px;max-width:170px}
+.st-row.link{cursor:pointer}
+.st-row.link .chev{color:var(--muted);font-size:20px}
+.paidbox{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.eur{display:inline-flex;align-items:center;gap:4px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:0 10px;height:38px;font-weight:600}
+.eur input{width:84px;border:0;background:transparent;font:inherit;font-size:16px;font-weight:600;color:var(--ink);text-align:right}
+.eur input:focus{outline:none}
+.mini-btn{height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:600;color:var(--todo)}
+.sw{position:relative;width:51px;height:31px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:16px;background:var(--line);transition:background .2s}
+.sw span::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .2s}
+.sw input:checked+span{background:var(--done)}
+.sw input:checked+span::after{transform:translateX(20px)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.primary:disabled,.secondary:disabled{opacity:.45}
+.primary{height:52px;border-radius:14px;background:var(--accent);color:#fff;font-weight:700;font-size:17px;width:100%}
+.secondary{height:48px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-weight:600;width:100%}
+.danger{height:48px;border-radius:14px;background:var(--card);border:1px solid var(--line);color:var(--todo);font-weight:600;width:100%}
+.danger.confirm{background:var(--todo);color:#fff;border-color:var(--todo)}
+.err{color:var(--todo);font-size:13.5px;font-weight:600;margin:-4px 4px 0}
+.err:empty{display:none}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:38px;height:38px;border-radius:11px;background:var(--soft);border:1px solid var(--line);font-size:21px;font-weight:600}
+.stepper b{min-width:58px;text-align:center;font-size:18px}
+.info{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;font-size:14.5px;line-height:1.45}
+.info b{color:var(--hold)}
+.syncinfo{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.syncinfo .dot{width:12px;height:12px;border-radius:50%;background:var(--muted);flex:none}
+.syncinfo.ok .dot{background:var(--done)} .syncinfo.error .dot{background:var(--todo)} .syncinfo.saving .dot{background:var(--wait)}
+.syncinfo b{display:block}
+.syncinfo small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.syncinfo small.neg{color:var(--todo)}
+.hint{font-size:12.5px;color:var(--muted);margin:0 4px;line-height:1.45}
+.warnbox{background:var(--wait-bg);color:var(--ink);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.4}
+.inp{border:1px solid var(--line);background:var(--card);border-radius:12px;height:46px;padding:0 12px;font:inherit;font-size:16px;color:var(--ink);width:100%}
+.flabel{font-size:12.5px;color:var(--muted);font-weight:600;margin:0 4px -8px}
+:root[data-theme="dark"] .fab,:root[data-theme="dark"] .primary{color:#06272A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab,:root:not([data-theme="light"]) .primary{color:#06272A}}
+
+.toast{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 10px 10px 16px;font-size:14px;display:flex;align-items:center;gap:12px;opacity:0;pointer-events:none;transition:all .22s;z-index:60;width:max-content;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{color:var(--bg);font-weight:700;padding:6px 10px;border-radius:9px;background:rgba(127,127,127,.25);font-size:13.5px}
+.toast button:empty{display:none}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (min-width:380px){.tick{font-size:13.5px;padding:4px 10px}}
+@media (max-width:350px){.side{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.side-lbl{grid-column:1/-1;display:flex;gap:6px;align-items:baseline}.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar">
+  <button class="sync loc" id="syncbar" aria-label="Sync-Status"><span class="sd"></span><span>Nur auf diesem Gerät</span></button>
+  <span class="mini">Erstattungen</span>
+  <div class="right"><button class="icon-btn" id="btnSettings" aria-label="Einstellungen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button></div>
+</div>
+
+<main class="wrap page" id="pageHome" aria-label="Startseite">
+  <header>
+    <span class="appicon" id="appIcon"></span>
+    <div>
+      <h1>Erstattungen</h1>
+      <p>Beihilfe &amp; Krankenversicherung</p>
+    </div>
+  </header>
+  <section class="alerts" id="alerts" aria-label="Hinweise"></section>
+  <nav class="years" id="years" aria-label="Jahr"></nav>
+  <section class="hero" id="hero" aria-label="Übersicht"></section>
+  <div class="tiles" id="tiles"></div>
+  <section class="yc" id="yearCard" aria-label="Jahr im Blick"></section>
+  <section class="stats" id="stats" aria-label="Ausgaben nach Fachrichtung"></section>
+</main>
+
+<main class="wrap page" id="pageBills" aria-label="Rechnungen" hidden>
+  <header class="ph">
+    <div>
+      <h1>Rechnungen</h1>
+      <p class="num" id="billsSub"></p>
+    </div>
+  </header>
+  <nav class="years" id="years2" aria-label="Jahr"></nav>
+  <div class="tools">
+    <div class="seg" id="seg" role="group" aria-label="Filter"></div>
+    <label class="search" for="q">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Suchen: Zahnarzt, Pille, Praxis …" autocomplete="off" enterkeyhint="search">
+    </label>
+  </div>
+  <div id="list"></div>
+  <p class="hint-swipe" id="swipeHint">Karte nach links wischen zum Löschen</p>
+</main>
+
+<button class="fab" id="btnAdd">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  Rechnung
+</button>
+
+<nav class="tabbar" aria-label="Bereiche">
+  <button data-tab="home" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v10.5a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9"/></svg>
+    <span>Startseite</span>
+  </button>
+  <button data-tab="bills">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7.5L19 7.5V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/><path d="M8.5 12.5h7M8.5 16h5"/></svg>
+    <span>Rechnungen</span><b class="tab-badge" id="tabBadge" hidden></b>
+  </button>
+</nav>
+
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Beleg" hidden>
+  <button class="viewer-x" id="viewerClose" aria-label="Schließen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+  <img id="viewerImg" alt="Beleg">
+</div>
+
+<div class="toast" id="toast" role="status"><span id="toastText"></span><button id="toastUndo"></button></div>
+
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-head" id="sheetHead">
+    <button id="sheetCancel">Abbrechen</button>
+    <h2 id="sheetTitle"></h2>
+    <button id="sheetSave">Sichern</button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</section>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- App-Icon ---------- */
+const APP_ICON = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#11858F"/><stop offset="1" stop-color="#0A3940"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><path d="M29 17h38a5 5 0 0 1 5 5v58l-6.5-4.5-6.5 4.5-6.5-4.5-6.5 4.5-6.5-4.5-6.5 4.5-6.5-4.5V22a5 5 0 0 1 5-5z" fill="#fff"/><rect x="33" y="28" width="26" height="4.5" rx="2.25" fill="#0B6E77" opacity=".35"/><rect x="33" y="38" width="18" height="4.5" rx="2.25" fill="#0B6E77" opacity=".35"/><rect x="33" y="51" width="14" height="9" rx="3" fill="#7457E8"/><rect x="49" y="51" width="14" height="9" rx="3" fill="#2B74E0"/><circle cx="70" cy="71" r="15" fill="#1D9455" stroke="#fff" stroke-width="4"/><path d="M63 71.5l4.8 4.8 9-9.6" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+document.getElementById("appIcon").innerHTML = APP_ICON;
+
+/* ---------- Fachrichtungen mit Icons ---------- */
+const I = p => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+const TOOTH = '<path d="M7.5 3.5c-2.3 0-3.8 1.8-3.8 4.2 0 1.9.8 3.2 1.3 4.8.6 2 .8 4.4 1.5 6.7.4 1.2 1.9 1.2 2.2 0l1-3.6c.4-1.3 2.2-1.3 2.6 0l1 3.6c.3 1.2 1.8 1.2 2.2 0 .7-2.3.9-4.7 1.5-6.7.5-1.6 1.3-2.9 1.3-4.8 0-2.4-1.5-4.2-3.8-4.2-1.9 0-2.7 1-4.5 1s-2.6-1-4.5-1z"/>';
+const CATS = [
+  {g:"Ärzte", id:"arzt",   label:"Hausarzt",           c:"#0E8A7E", svg:I('<path d="M5 3v5a4 4 0 0 0 8 0V3"/><path d="M9 12v2.5a5 5 0 0 0 10 0V13"/><circle cx="19" cy="11" r="2"/>')},
+  {g:"Ärzte", id:"intern", label:"Internist / Magen-Darm", c:"#B8673A", svg:I('<path d="M9 3v4c0 2-3 2.7-3 6.5a6 6 0 0 0 12 0c0-2.2-1.5-3.5-3.5-3.5S12 8.6 12 6.5V3"/>')},
+  {g:"Ärzte", id:"lunge",  label:"Lungenarzt",         c:"#2E9BB5", svg:I('<path d="M12 3v8M12 11l-2.2 1.6M12 11l2.2 1.6"/><path d="M9.6 8.2C8 7 4.2 8.2 3.7 13c-.4 3.6.3 6.5 2.6 6.5 2.8 0 3.7-2 3.7-5v-2"/><path d="M14.4 8.2C16 7 19.8 8.2 20.3 13c.4 3.6-.3 6.5-2.6 6.5-2.8 0-3.7-2-3.7-5v-2"/>')},
+  {g:"Ärzte", id:"herz",   label:"Kardiologe",         c:"#D63A4A", svg:I('<path d="M20.4 5a5.2 5.2 0 0 0-7.4 0L12 6l-1-1a5.2 5.2 0 0 0-7.4 7.4L12 20.8l8.4-8.4A5.2 5.2 0 0 0 20.4 5z"/><path d="M6.5 12.5h3l1.5-2.5 2 4 1.5-1.5h3"/>')},
+  {g:"Ärzte", id:"hno",    label:"HNO-Arzt",           c:"#C27A1A", svg:I('<path d="M6 9a6 6 0 1 1 12 0c0 3.5-3 4.5-3 7.5a3.5 3.5 0 0 1-6.6 1.6"/><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.6-1.5 2-1.5 3.5"/>')},
+  {g:"Ärzte", id:"auge",   label:"Augenarzt",          c:"#1F95C9", svg:I('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>')},
+  {g:"Ärzte", id:"haut",   label:"Hautarzt",           c:"#D9822B", svg:I('<path d="M12 2.8S6 9.2 6 13.8a6 6 0 0 0 12 0C18 9.2 12 2.8 12 2.8z"/>')},
+  {g:"Ärzte", id:"frau",   label:"Frauenarzt",         c:"#D9576B", svg:I('<circle cx="12" cy="9" r="5"/><path d="M12 14v8M9 19h6"/>')},
+  {g:"Ärzte", id:"uro",    label:"Urologe",            c:"#4A79C9", svg:I('<circle cx="10" cy="14" r="5"/><path d="M13.6 10.4 20 4M15 4h5v5"/>')},
+  {g:"Ärzte", id:"ortho",  label:"Orthopäde",          c:"#6E8B2F", svg:I('<path d="M17 10c.7-.7 1.7-.4 2.6-1.3a2.1 2.1 0 0 0-3-3 2.1 2.1 0 0 0-3-3c-.9.9-.6 1.9-1.3 2.6l-7 7c-.7.7-1.7.4-2.6 1.3a2.1 2.1 0 0 0 3 3 2.1 2.1 0 0 0 3 3c.9-.9.6-1.9 1.3-2.6z"/>')},
+  {g:"Ärzte", id:"neuro",  label:"Neurologe",          c:"#8A55C8", svg:I('<path d="M12 5a3 3 0 0 0-5.6-1.5A3 3 0 0 0 4 8a3 3 0 0 0 0 5 3 3 0 0 0 3 4.5A3 3 0 0 0 12 19z"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3 3 0 0 1 20 8a3 3 0 0 1 0 5 3 3 0 0 1-3 4.5A3 3 0 0 1 12 19"/><path d="M12 5v14"/>')},
+  {g:"Ärzte", id:"psych",  label:"Psycho­therapie",     c:"#9B6BB0", svg:I('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M12 15.5s-3-1.8-3-3.8a1.6 1.6 0 0 1 3-.8 1.6 1.6 0 0 1 3 .8c0 2-3 3.8-3 3.8z"/>')},
+  {g:"Ärzte", id:"kinder", label:"Kinderarzt",         c:"#E0A21B", svg:I('<circle cx="12" cy="12.5" r="8"/><path d="M9.3 11h.01M14.7 11h.01"/><path d="M9.5 15a3.5 3.5 0 0 0 5 0"/><path d="M12 4.5c-1.2 1-1 2.3.3 2.5"/>')},
+  {g:"Ärzte", id:"chirurg",label:"Chirurgie",          c:"#5D7489", svg:I('<path d="M4.9 12.9l8-8a3 3 0 0 1 4.2 0l2 2a3 3 0 0 1 0 4.2l-8 8a3 3 0 0 1-4.2 0l-2-2a3 3 0 0 1 0-4.2z"/><path d="M11 12h.01M13 12h.01M12 11h.01M12 13h.01"/>')},
+  {g:"Ärzte", id:"fach",   label:"Anderer Facharzt",   c:"#5B6CD8", svg:I('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>')},
+  {g:"Zähne", id:"zahn",   label:"Zahnarzt",           c:"#2F7FE0", svg:I(TOOTH)},
+  {g:"Zähne", id:"kfo",    label:"Kiefer­orthopäde",   c:"#2A9D8F", svg:I(TOOTH+'<path d="M5 9.5h14"/>')},
+  {g:"Vorsorge & Impfung", id:"vorsorge", label:"Vorsorge / Check-up", c:"#0E8A7E", svg:I('<rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V3h6v1"/><path d="m8.8 13 2.3 2.3 4.4-4.6"/>')},
+  {g:"Vorsorge & Impfung", id:"impfung",label:"Impfung",  c:"#7A4FD6", svg:I('<path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3a2.4 2.4 0 0 1-3.4 0l-.6-.6a2.4 2.4 0 0 1 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/>')},
+  {g:"Diagnostik & Therapie", id:"radio", label:"Radiologie / MRT", c:"#4F6D8F", svg:I('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M12 7v10M8.5 9.5h7M8.5 12h7M8.5 14.5h7"/>')},
+  {g:"Diagnostik & Therapie", id:"labor", label:"Labor",  c:"#3C7D9E", svg:I('<path d="M9 3h6"/><path d="M10 3v6L4.6 18.6A1.6 1.6 0 0 0 6 21h12a1.6 1.6 0 0 0 1.4-2.4L14 9V3"/><path d="M7.5 15h9"/>')},
+  {g:"Diagnostik & Therapie", id:"physio",label:"Physio­therapie", c:"#5E9E3A", svg:I('<path d="M22 12h-4l-3 8-6-16-3 8H2"/>')},
+  {g:"Diagnostik & Therapie", id:"heilpr",label:"Heilpraktiker / Osteopathie", c:"#4E9A5E", svg:I('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.2-6.1"/>')},
+  {g:"Klinik", id:"klinik", label:"Krankenhaus",        c:"#C0392B", svg:I('<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M12 7v6M9 10h6"/><path d="M10 21v-4h4v4"/>')},
+  {g:"Klinik", id:"notfall",label:"Notdienst",          c:"#E0552B", svg:I('<path d="M7 18v-6a5 5 0 0 1 10 0v6"/><path d="M5 21h14v-3H5z"/><path d="M12 2.5v2M4.2 5.7l1.4 1.4M19.8 5.7l-1.4 1.4"/>')},
+  {g:"Apotheke & Sonstiges", id:"rezept", label:"Rezept / Apotheke", c:"#C9478E", svg:I('<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>')},
+  {g:"Apotheke & Sonstiges", id:"brille", label:"Brille / Hilfsmittel", c:"#3E8FB0", svg:I('<circle cx="6" cy="15" r="3.5"/><circle cx="18" cy="15" r="3.5"/><path d="M9.5 15c1-1 4-1 5 0"/><path d="M2.5 15 4.5 7H6M21.5 15l-2-8H18"/>')},
+  {g:"Apotheke & Sonstiges", id:"sonst",  label:"Sonstiges", c:"#6F7A86", svg:I('<path d="M14 3H6.5A2.5 2.5 0 0 0 4 5.5v13A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/>')}
+];
+const CAT = Object.fromEntries(CATS.map(c=>[c.id,c]));
+const catOf = id => CAT[id] || CAT.sonst;
+const plainLabel = c => c.label.replace(/­/g,"");
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const IC_SHIELD = I('<path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="M9 12h6"/>');
+const IC_GIFT = I('<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/>');
+const IC_TRASH = I('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>');
+const IC_DOC = I('<path d="M14 3H6.5A2.5 2.5 0 0 0 4 5.5v13A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5V9z"/><path d="M14 3v6h6"/><path d="M12 12v6M9 15l3 3 3-3"/>');
+const IC_SEND = I('<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>');
+const IC_BELL = I('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>');
+const IC_CAL = I('<rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/>');
+const IC_CLIP = I('<path d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.9-8.9a3.7 3.7 0 0 1 5.2 5.2l-8.9 8.9a1.8 1.8 0 0 1-2.6-2.6L15.4 6.2"/>');
+const IC_CAM = I('<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>');
+const SIDES = [{k:"bh",name:"Beihilfe",long:"Beihilfe"},{k:"kv",name:"KV",long:"Krankenversicherung"}];
+
+/* ---------- Hilfsfunktionen ---------- */
+const eur = new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"});
+const money = v => eur.format(Math.abs(v)<0.005?0:v);
+const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const pad = n => String(n).padStart(2,"0");
+const todayISO = () => { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+const thisYear = () => todayISO().slice(0,4);
+const isISO = v => typeof v==="string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const fmtDate = iso => isISO(iso) ? iso.slice(8,10)+"."+iso.slice(5,7)+"."+iso.slice(0,4) : "";
+const fmtShort = iso => isISO(iso) ? iso.slice(8,10)+"."+iso.slice(5,7)+"." : "";
+const daysSince = iso => isISO(iso) ? Math.floor((new Date(todayISO()) - new Date(iso))/86400000) : null;
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const parseAmount = s => { s=String(s||"").trim().replace(/\s|€/g,""); if(s.includes(",")) s=s.replace(/\./g,"").replace(",","."); if(s==="") return NaN; const n=Number(s); return isFinite(n)?Math.round(n*100)/100:NaN; };
+const amountStr = n => (typeof n==="number" && isFinite(n)) ? n.toFixed(2).replace(".",",") : "";
+const uid = () => "b"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const r2 = v => Math.round(v*100)/100;
+const $ = id => document.getElementById(id);
+const yearOf = b => (b.date||"").slice(0,4);
+
+/* ---------- Daten ---------- */
+const LS_KEY = "erst_v1";
+const DEFAULT_SETTINGS = {bhPct:50, kdp:150, cbOn:true, cb:{"2025":506.69}};
+const SEED = [
+  ["b2026-03-11-impfung","2026-03-11",40.28,"Rezept Impfung","rezept",1],
+  ["b2026-04-02-montelukast","2026-04-02",49.05,"Rezept Montelukast","rezept",2],
+  ["b2026-03-16-fsme","2026-03-16",56.26,"Rezept FSME","rezept",3],
+  ["b2026-05-04-pille","2026-05-04",23.79,"Rezept Pille","rezept",4],
+  ["b2026-07-21-fsme-impfung","2026-07-21",21.44,"FSME Impfung","impfung",5],
+  ["b2026-10-24-pille","2026-10-24",24.56,"Rezept Pille","rezept",6]
+].map(([id,date,amount,title,cat,created])=>({id,date,amount,title,cat,created,note:"",vorsorge:false,bhSub:true,bhPaid:null,bhAmt:null,kvSub:null,kvPaid:null,kvAmt:null}));
+
+let S = {bills:[], settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), _ts:0};
+const ui = {year:"all", filter:"open", q:""};
+
+function normalize(b){
+  const num = v => (typeof v==="number" && isFinite(v)) ? v : null;
+  return {
+    id:String(b.id), date:isISO(b.date)?b.date:todayISO(), amount:Number(b.amount)||0,
+    title:String(b.title||""), cat:CAT[b.cat]?b.cat:"sonst", note:String(b.note||""), vorsorge:!!b.vorsorge,
+    bhSub:b.bhSub||null, bhPaid:b.bhPaid||null, bhAmt:num(b.bhAmt),
+    kvSub:b.kvSub||null, kvPaid:b.kvPaid||null, kvAmt:num(b.kvAmt),
+    photo:(b.photo && typeof b.photo.id==="string") ? {id:b.photo.id} : null,
+    created:Number(b.created)||0
+  };
+}
+function adoptState(o){
+  S = {bills:(o.bills||[]).map(normalize), settings:Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), o.settings||{}), _ts:o._ts||0};
+  if(!S.settings.cb || typeof S.settings.cb!=="object") S.settings.cb = {};
+}
+function load(){
+  let raw = null;
+  try{ raw = localStorage.getItem(LS_KEY); }catch(e){}
+  if(raw){ try{ adoptState(JSON.parse(raw)); return true; }catch(e){} }
+  adoptState({bills:SEED, _ts:0});
+  return false;
+}
+let _idb=null;
+function idb(){ if(_idb) return _idb; _idb=new Promise((res,rej)=>{try{const r=indexedDB.open("erstattungen",2);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains("kv"))d.createObjectStore("kv");if(!d.objectStoreNames.contains("photos"))d.createObjectStore("photos")};r.onsuccess=()=>res(r.result);r.onerror=()=>{_idb=null;rej(r.error)}}catch(e){_idb=null;rej(e)}}); return _idb; }
+async function photoPut(id,blob){try{const d=await idb();await new Promise((res,rej)=>{const t=d.transaction("photos","readwrite");t.objectStore("photos").put(blob,id);t.oncomplete=res;t.onerror=()=>rej(t.error)});return true}catch(e){return false}}
+async function photoGetLocal(id){try{const d=await idb();return await new Promise((res,rej)=>{const q=d.transaction("photos","readonly").objectStore("photos").get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error)})}catch(e){return null}}
+async function photoDelLocal(id){try{const d=await idb();await new Promise((res,rej)=>{const t=d.transaction("photos","readwrite");t.objectStore("photos").delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
+async function idbSet(k,v){try{const d=await idb();await new Promise((res,rej)=>{const t=d.transaction("kv","readwrite");v==null?t.objectStore("kv").delete(k):t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
+async function idbGet(k){try{const d=await idb();return await new Promise((res,rej)=>{const q=d.transaction("kv","readonly").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return null}}
+function persist(){
+  const json = JSON.stringify(S);
+  try{ localStorage.setItem(LS_KEY, json); }catch(e){}
+  idbSet(LS_KEY, json);
+}
+function save(){ S._ts = Date.now(); persist(); schedulePush(); render(); }
+function upsertBill(b){ const i=S.bills.findIndex(x=>x.id===b.id); if(i>=0) S.bills[i]=b; else S.bills.push(b); save(); }
+function removeBill(id){
+  const b = S.bills.find(x=>x.id===id);
+  S.bills = S.bills.filter(x=>x.id!==id); save();
+  if(b && b.photo) setTimeout(()=>dropPhotoIfUnused(b.photo.id), 8000);
+}
+
+/* ---------- Berechnung ---------- */
+function cbFor(y){
+  const cb = S.settings.cb || {};
+  if(typeof cb[y]==="number") return {v:cb[y], est:false, from:y};
+  const ks = Object.keys(cb).filter(k=>k<y && typeof cb[k]==="number").sort();
+  if(ks.length) return {v:cb[ks[ks.length-1]], est:true, from:ks[ks.length-1]};
+  return {v:506.69, est:true, from:null};
+}
+/* Pro Jahr (nach Behandlungsdatum): Kostendämpfungspauschale in Datumsreihenfolge vom Beihilfe-Anteil;
+   Cashback-Rechnung nur mit Nicht-Vorsorge-Rechnungen. */
+function computeShares(list){
+  const st = S.settings, map = {}, years = {};
+  const Y = y => years[y] || (years[y] = {kdpUsed:0, kvSum:0, prevSum:0, total:0, kvSub:false, n:0});
+  list.slice().sort((a,b)=>a.date.localeCompare(b.date) || a.created-b.created).forEach(b=>{
+    const y = yearOf(b), yr = Y(y);
+    const gross = Math.round(b.amount*st.bhPct)/100;
+    const ded = r2(Math.min(gross, Math.max(0, st.kdp - yr.kdpUsed)));
+    yr.kdpUsed = r2(yr.kdpUsed + ded);
+    const kv = r2(b.amount-gross);
+    if(b.vorsorge) yr.prevSum = r2(yr.prevSum + kv);
+    else { yr.kvSum = r2(yr.kvSum + kv); if(b.kvSub) yr.kvSub = true; }
+    yr.total = r2(yr.total + b.amount); yr.n++;
+    map[b.id] = {gross, kdp:ded, bh:r2(gross-ded), kv};
+  });
+  return {map, years};
+}
+let SH = {map:{}, years:{}};
+const shares = b => SH.map[b.id] || {gross:0,kdp:0,bh:0,kv:0};
+function yearInfo(y){
+  const yr = SH.years[y] || {kdpUsed:0, kvSum:0, prevSum:0, total:0, kvSub:false, n:0};
+  const cb = cbFor(y);
+  const mode = !S.settings.cbOn ? "off" : yr.kvSub ? "lost" : (yr.kvSum > cb.v ? "worth" : "hold");
+  return Object.assign({}, yr, {cb, mode});
+}
+/* Tatsächlich erhalten bzw. nicht erstattungsfähig */
+const received = (b,k) => b[k+"Paid"] ? (typeof b[k+"Amt"]==="number" ? b[k+"Amt"] : shares(b)[k]) : 0;
+const shortfall = (b,k) => (b[k+"Paid"] && typeof b[k+"Amt"]==="number") ? Math.max(0, r2(shares(b)[k]-b[k+"Amt"])) : 0;
+
+/* Zustände: todo einreichen · wait wartet · done erstattet · own auf Pauschale angerechnet · hold für Cashback zurückhalten */
+function sideState(b,k){
+  const sh = shares(b), sub = b[k+"Sub"], paid = b[k+"Paid"];
+  if(k==="bh"){
+    if(sub && sh.bh===0 && sh.kdp>0) return "own";
+    if(paid) return "done";
+    return sub ? "wait" : "todo";
+  }
+  if(paid) return "done";
+  if(sub) return "wait";
+  return (!b.vorsorge && yearInfo(yearOf(b)).mode==="hold") ? "hold" : "todo";
+}
+function billState(b){
+  const s = SIDES.map(x=>sideState(b,x.k));
+  if(s.includes("todo")) return "todo";
+  if(s.includes("wait")) return "wait";
+  if(s.includes("hold")) return "hold";
+  return "done";
+}
+
+/* ---------- Cloud-Sync über GitHub (privates Daten-Repository) ---------- */
+const SYNC_KEY = "erst_sync";
+let SY = (()=>{try{return JSON.parse(localStorage.getItem(SYNC_KEY)||"null")}catch(e){return null}})();
+let initialPulled = true, bootTs = 0, pendingPush = false;
+let syncState = "local", syncAt = 0, pushTimer = null, pulling = false, pushing = false, dirty = false, pushAgain = false, syncErr = "";
+const inPreview = (()=>{ try{ return window.self !== window.top; }catch(e){ return true; } })();
+const saveSY = ()=>{ try{ SY ? localStorage.setItem(SYNC_KEY, JSON.stringify(SY)) : localStorage.removeItem(SYNC_KEY); }catch(e){} idbSet(SYNC_KEY, SY ? JSON.stringify(SY) : null); };
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+const syncOn = ()=>!!(SY && SY.token && SY.owner && SY.repo);
+const ghUrl = ()=>"https://api.github.com/repos/"+encodeURIComponent(SY.owner)+"/"+encodeURIComponent(SY.repo)+"/contents/"+(SY.path||"erstattungen.json");
+const ghH = (x)=>Object.assign({"Authorization":"Bearer "+SY.token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}, x||{});
+const enc = s=>btoa(unescape(encodeURIComponent(s)));
+const dec = b=>decodeURIComponent(escape(atob(String(b).replace(/\s/g,""))));
+/* Verschlüsselung (AES-GCM, Schlüssel aus Passwort via PBKDF2) */
+const b64s = buf=>{let s="";const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)};
+const unb64s = s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function deriveKey(pw,saltB64){const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);const k=await crypto.subtle.deriveKey({name:"PBKDF2",salt:unb64s(saltB64),iterations:250000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},true,["encrypt","decrypt"]);return b64s(await crypto.subtle.exportKey("raw",k))}
+let _ck=null;
+async function cryptoKey(raw){raw=raw||(SY&&SY.key);if(!raw)return null;if(_ck&&_ck.raw===raw)return _ck.k;const k=await crypto.subtle.importKey("raw",unb64s(raw),"AES-GCM",false,["encrypt","decrypt"]);_ck={raw,k};return k}
+async function packData(obj){const json=JSON.stringify(obj);const k=await cryptoKey();if(!k)return json;const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(json));return JSON.stringify({enc:"aes-256-gcm/pbkdf2-sha256",v:1,salt:SY.salt,iv:b64s(iv),_ts:obj._ts||0,data:b64s(ct)})}
+async function unpackData(text,raw){const o=JSON.parse(text);if(!o||!o.enc)return o;const k=await cryptoKey(raw);if(!k)throw "locked";try{const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64s(o.iv)},k,unb64s(o.data));return JSON.parse(new TextDecoder().decode(pt))}catch(e){throw "badpw"}}
+
+function setSync(st,err){ syncState=st; if(st==="ok") syncAt=Date.now(); if(err!=null) syncErr=String(err); paintSync(); }
+function agoTxt(t){ if(!t) return ""; const s=Math.round((Date.now()-t)/1000); return s<5?"gerade eben":s<60?"vor "+s+" s":s<3600?"vor "+Math.floor(s/60)+" min":"vor "+Math.floor(s/3600)+" h"; }
+function paintSync(){
+  const el = $("syncbar"); if(!el) return;
+  const off = syncOn() && !navigator.onLine; const st = off ? "offline" : syncState;
+  const m = {
+    ok:["ok","<b>Live</b> · synchronisiert "+agoTxt(syncAt)],
+    saving:["busy","Speichert in der Cloud …"],
+    local:["loc","Nur auf diesem Gerät"],
+    offline:["warn", (dirty||pendingPush) ? "<b>Offline</b> · Änderungen warten" : "<b>Offline</b> · Stand "+(syncAt?agoTxt(syncAt):"von zuvor")],
+    error:["err","Sync-Fehler · antippen"]
+  }[st] || ["loc","Nur auf diesem Gerät"];
+  el.className = "sync "+m[0];
+  el.innerHTML = '<span class="sd"></span><span>'+m[1]+'</span>';
+}
+setInterval(()=>{ if(!document.hidden) paintSync(); }, 5000);
+window.addEventListener("offline", paintSync);
+
+async function pushNow(){
+  if(!syncOn()) return setSync("local");
+  if(pushing){ pushAgain=true; return; }
+  pushing = true;
+  try{
+    const body = {message:"Sync "+new Date().toISOString(), content:enc(await packData(S))};
+    if(SY.sha) body.sha = SY.sha;
+    let r = await fetch(ghUrl(),{method:"PUT",headers:ghH({"Content-Type":"application/json"}),body:JSON.stringify(body),cache:"no-store"});
+    if(r.status===409||r.status===422){
+      const g = await fetch(ghUrl(),{headers:ghH(),cache:"no-store"});
+      if(g.ok){ SY.sha=(await g.json()).sha; body.sha=SY.sha; } else { delete body.sha; SY.sha=null; }
+      r = await fetch(ghUrl(),{method:"PUT",headers:ghH({"Content-Type":"application/json"}),body:JSON.stringify(body),cache:"no-store"});
+    }
+    if(!r.ok) throw r.status;
+    const j = await r.json(); SY.sha=j.content.sha; SY.etag=null; saveSY(); dirty=false; setSync("ok"); processPQ();
+  }catch(e){
+    setSync(navigator.onLine?"error":"offline", e===401?"Token ungültig oder abgelaufen":e===404?"Repository nicht gefunden oder kein Zugriff":e===403?"Kein Schreibrecht (Token-Berechtigung „Contents: Read and write“ prüfen)":(typeof e==="number"?"Fehler "+e:"GitHub ist nicht erreichbar"));
+  }finally{ pushing=false; if(pushAgain){ pushAgain=false; pushNow(); } }
+}
+function schedulePush(){
+  if(!syncOn()){ setSync("local"); return; }
+  if(!initialPulled){ pendingPush=true; setSync("saving"); return; }
+  dirty=true; setSync("saving"); clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600);
+}
+function finishBoot(){ if(initialPulled) return; initialPulled=true; if(pendingPush){ pendingPush=false; schedulePush(); } }
+async function pullNow(force){
+  if(!syncOn()||pulling||pushing||(dirty&&!force)) return;
+  pulling = true;
+  try{
+    const r = await fetch(ghUrl(),{headers:ghH(SY.etag&&!force?{"If-None-Match":SY.etag}:{}),cache:"no-store"});
+    if(r.status===304){ setSync("ok"); return; }
+    if(r.status===404){ SY.sha=null; saveSY(); initialPulled=true; schedulePush(); return; }
+    if(!r.ok) throw r.status;
+    SY.etag = r.headers.get("ETag");
+    const j = await r.json();
+    if(j.sha!==SY.sha){
+      const remote = await unpackData(dec(j.content));
+      SY.sha = j.sha; saveSY();
+      if((remote._ts||0) > (force==="boot" ? bootTs : (S._ts||0))){ adoptRemote(remote); pendingPush=false; }
+    } else saveSY();
+    setSync("ok");
+  }catch(e){
+    setSync(navigator.onLine?"error":"offline", e===401?"Token ungültig oder abgelaufen":e==="locked"?"Die Cloud-Daten sind verschlüsselt. Verbindung trennen und mit Passwort neu verbinden.":e==="badpw"?"Passwort passt nicht zu den Cloud-Daten":(typeof e==="number"?"Fehler "+e:"GitHub ist nicht erreichbar"));
+  }finally{ pulling=false; if(force==="boot") finishBoot(); }
+}
+function adoptRemote(remote){ adoptState(remote); persist(); render(); }
+setInterval(()=>{ if(!document.hidden) pullNow(); }, 3000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) pullNow(); });
+window.addEventListener("online", ()=>{ paintSync(); dirty ? pushNow() : pullNow(); });
+
+/* ---------- Darstellung ---------- */
+const focusYear = () => ui.year==="all" ? thisYear() : ui.year;
+function visibleBills(){ return ui.year==="all" ? S.bills : S.bills.filter(b=>yearOf(b)===ui.year); }
+function matches(b,f){
+  const s = billState(b);
+  if(f==="open") return s!=="done";
+  if(f==="todo") return s==="todo";
+  if(f==="done") return s==="done";
+  return true;
+}
+function matchesQuery(b){
+  if(!ui.q) return true;
+  const q = ui.q.toLowerCase();
+  return [b.title, b.note, plainLabel(catOf(b.cat)), fmtDate(b.date), amountStr(b.amount), b.vorsorge?"vorsorge":""].some(x=>String(x).toLowerCase().includes(q));
+}
+
+function render(){
+  SH = computeShares(S.bills);
+  const years = [...new Set(S.bills.map(yearOf).filter(Boolean).concat([thisYear()]))].sort().reverse();
+  if(ui.year!=="all" && !years.includes(ui.year)) ui.year="all";
+  const chips = ['<button class="chip" data-year="all" aria-pressed="'+(ui.year==="all")+'">Alle Jahre</button>']
+    .concat(years.map(y=>'<button class="chip" data-year="'+y+'" aria-pressed="'+(ui.year===y)+'">'+y+'</button>')).join("");
+  $("years").innerHTML = chips; $("years2").innerHTML = chips;
+
+  const vb = visibleBills();
+  const sum = {total:0, own:0, done:0, wait:0, todo:0, hold:0, lost:0};
+  const per = {bh:{open:0,todo:0,paid:0,own:0}, kv:{open:0,todo:0,paid:0,hold:0}};
+  vb.forEach(b=>{
+    const sh = shares(b); sum.total += b.amount; sum.own += sh.kdp; per.bh.own += sh.kdp;
+    SIDES.forEach(({k})=>{
+      const st = sideState(b,k), v = sh[k];
+      if(st==="done"){ const got = received(b,k); sum.done+=got; per[k].paid+=got; sum.lost += shortfall(b,k); }
+      else if(st==="wait"){ sum.wait+=v; per[k].open+=v; }
+      else if(st==="todo"){ sum.todo+=v; per[k].open+=v; per[k].todo+=v; }
+      else if(st==="hold"){ sum.hold+=v; per.kv.hold+=v; }
+    });
+  });
+
+  const open = sum.wait + sum.todo;
+  const pct = v => sum.total>0 ? (v/sum.total*100) : 0;
+  const seg = (v,col) => v>0.004 ? '<i style="width:'+pct(v)+'%;background:'+col+'"></i>' : '';
+  const leg = (v,col,l) => '<span><i style="background:'+col+'"></i>'+l+'<b class="num">'+money(v)+'</b></span>';
+  $("hero").innerHTML =
+    '<div class="hero-top"><div><div class="lbl">Erwartete Erstattungen offen</div><div class="big num">'+money(open)+'</div></div>'+
+    '<div class="paid num">Vorgestreckt<b>'+money(sum.total)+'</b></div></div>'+
+    '<div class="bar" aria-hidden="true">'+seg(sum.done,"var(--done)")+seg(sum.wait,"var(--wait)")+seg(sum.todo,"var(--todo)")+seg(sum.hold,"var(--hold)")+seg(sum.own,"var(--own)")+seg(sum.lost,"rgba(255,255,255,.45)")+'</div>'+
+    '<div class="legend">'+leg(sum.done,"var(--done)","Erstattet")+leg(sum.wait,"var(--wait)","Wartet")+leg(sum.todo,"var(--todo)","Einreichen")+
+      (S.settings.cbOn?leg(sum.hold,"var(--hold)","Gesammelt"):'')+(S.settings.kdp>0?leg(sum.own,"var(--own)","Pauschale"):'')+
+      (sum.lost>0.004?leg(sum.lost,"rgba(255,255,255,.45)","Nicht erstattet"):'')+'</div>';
+
+  const fy = yearInfo(focusYear());
+  const kdpLeft = r2(Math.max(0, S.settings.kdp - fy.kdpUsed));
+  let bhSub;
+  if(per.bh.todo>0.004) bhSub = ['c-todo', money(per.bh.todo)+' noch einreichen'];
+  else if(per.bh.open>0.004) bhSub = ['c-wait', 'eingereicht, wartet'];
+  else if(S.settings.kdp>0 && kdpLeft>0.004 && fy.n>0) bhSub = ['c-own', 'Unter der Kosten­dämpfungs­pauschale – noch '+money(kdpLeft)];
+  else if(per.bh.paid>0.004) bhSub = ['c-done', 'alles erstattet'];
+  else if(per.bh.own>0.004) bhSub = ['c-own', 'auf die Pauschale angerechnet'];
+  else bhSub = ['', 'keine Rechnungen'];
+  let kvSub;
+  if(per.kv.todo>0.004) kvSub = ['c-todo', money(per.kv.todo)+' noch einreichen'];
+  else if(per.kv.open>0.004) kvSub = ['c-wait', 'eingereicht, wartet'];
+  else if(per.kv.hold>0.004) kvSub = ['c-hold', money(per.kv.hold)+' für Cashback gesammelt'];
+  else if(per.kv.paid>0.004) kvSub = ['c-done', 'alles erstattet'];
+  else kvSub = ['', 'keine Rechnungen'];
+  $("tiles").innerHTML =
+    '<div class="tile"><span class="t">Beihilfe offen</span><span class="v num">'+money(per.bh.open)+'</span><span class="s num '+bhSub[0]+'">'+bhSub[1]+'</span></div>'+
+    '<div class="tile"><span class="t">KV offen</span><span class="v num">'+money(per.kv.open)+'</span><span class="s num '+kvSub[0]+'">'+kvSub[1]+'</span></div>';
+
+  renderYearCard(fy, focusYear());
+
+  const F = [["open","Offen"],["todo","Einreichen"],["done","Erledigt"],["all","Alle"]];
+  $("seg").innerHTML = F.map(([id,l])=>{
+    const n = vb.filter(b=>matches(b,id)).length;
+    return '<button data-filter="'+id+'" aria-pressed="'+(ui.filter===id)+'">'+l+(id!=="all"&&n?'<span class="cnt num">'+n+'</span>':'')+'</button>';
+  }).join("");
+
+  const vbSum = vb.reduce((a,b)=>a+b.amount,0);
+  $("billsSub").textContent = vb.length+" Rechnung"+(vb.length===1?"":"en")+" · "+money(vbSum)+(ui.year==="all"?"":" in "+ui.year);
+  const nTodo = S.bills.filter(b=>billState(b)==="todo").length;
+  $("tabBadge").textContent = nTodo; $("tabBadge").hidden = !nTodo;
+  const items = vb.filter(b=>matches(b,ui.filter) && matchesQuery(b)).sort((a,b)=> b.date.localeCompare(a.date) || b.created-a.created);
+  if(!items.length){
+    const msg = ui.q ? ["Nichts gefunden","Kein Eintrag passt zu „"+esc(ui.q)+"“."] : {
+      open:["Nichts offen","Alle Rechnungen sind abgeschlossen."],
+      todo:["Alles eingereicht","Gerade gibt es nichts einzureichen."],
+      done:["Noch nichts abgeschlossen","Hier landen Rechnungen, bei denen nichts mehr offen ist."],
+      all:["Noch keine Rechnungen","Tippe unten auf „Rechnung“, um die erste einzutragen."]
+    }[ui.filter];
+    $("list").innerHTML = '<div class="empty"><b>'+msg[0]+'</b>'+msg[1]+'</div>';
+    $("swipeHint").hidden = true;
+  } else {
+    let html="", curM="";
+    const monthSum = {};
+    items.forEach(b=>{ const m=b.date.slice(0,7); monthSum[m]=(monthSum[m]||0)+b.amount; });
+    items.forEach(b=>{
+      const m = b.date.slice(0,7);
+      if(m!==curM){ curM=m; html += (html?'</div>':'')+'<div class="month"><span>'+MONTHS[+m.slice(5,7)-1]+' '+m.slice(0,4)+'</span><span class="num">'+money(monthSum[m])+'</span></div><div class="list">'; }
+      html += cardHTML(b);
+    });
+    $("list").innerHTML = html+'</div>';
+    $("swipeHint").hidden = false;
+  }
+  renderStats(vb);
+  renderAlerts();
+  paintSync();
+  setTimeout(checkMilestones, 60);
+}
+
+function renderYearCard(fy, y){
+  const st = S.settings;
+  let html = '<div class="yc-head"><h2>'+y+' im Blick</h2><button class="rep" data-report="'+y+'">'+IC_DOC+'Jahresbericht</button></div><div class="yc-head meta num">'+fy.n+' Rechnung'+(fy.n===1?'':'en')+' · '+money(fy.total)+' Arztkosten</div>';
+  if(st.kdp>0){
+    const used = fy.kdpUsed, full = used >= st.kdp-0.004, left = r2(st.kdp-used);
+    html += '<div class="lim '+(full?"t-done":"t-own")+'"><div class="lim-top"><span class="lim-ic">'+IC_SHIELD+'</span>'+
+      '<div class="lim-tt"><b>Kostendämpfungspauschale</b><small>Beihilfe · '+money(st.kdp)+' Eigenanteil pro Jahr</small></div>'+
+      '<span class="badge">'+(full?'erreicht':'noch '+money(left))+'</span></div>'+
+      '<div class="meter"><i style="width:'+Math.min(100,used/st.kdp*100)+'%"></i></div>'+
+      '<div class="meter-lbl num"><span>'+money(used)+' angerechnet</span><span>'+money(st.kdp)+'</span></div>'+
+      '<p>'+(full ? '<strong>Pauschale erreicht.</strong> Ab jetzt zahlt die Beihilfe ihren vollen Anteil.'
+                  : 'Du liegst noch <strong>unter der Pauschale</strong>. Die Beihilfe zahlt erst, wenn ihr Anteil '+money(left)+' mehr erreicht. Trotzdem einreichen, damit es angerechnet wird.')+'</p></div>';
+  }
+  if(st.cbOn){
+    const c = fy.cb, kv = fy.kvSum, nextY = String(+y+1);
+    const est = c.est ? ' · geschätzt'+(c.from?' (Wert '+c.from+')':'') : '';
+    let cls, badge, text;
+    if(fy.mode==="lost"){ cls="t-todo"; badge="Cashback entfällt"; text='Für '+y+' ist schon eine Rechnung (keine Vorsorge) bei der KV eingereicht. Den Cashback gibt es nicht mehr, also <strong>alle Rechnungen von '+y+' bei der KV einreichen</strong>.'; }
+    else if(fy.mode==="worth"){ cls="t-done"; badge="Einreichen lohnt sich"; text='Die KV zahlt <strong>'+money(kv)+'</strong> statt '+money(c.v)+' Cashback. Das sind <strong>'+money(kv-c.v)+' mehr</strong>, wenn du alle Rechnungen von '+y+' einreichst.'; }
+    else { const gap = r2(c.v-kv); cls="t-hold"; badge="Nicht einreichen"; text='<strong>Cashback sichern:</strong> Der KV-Anteil liegt '+money(gap)+' unter dem Cashback. Einreichen lohnt sich erst ab '+money(c.v*2)+' Rechnungen im Jahr (noch '+money(gap*2)+').'; }
+    html += '<div class="lim '+cls+'"><div class="lim-top"><span class="lim-ic">'+IC_GIFT+'</span>'+
+      '<div class="lim-tt"><b>HUK-Cashback</b><small class="num">'+money(c.v)+est+' · Auszahlung '+nextY+'</small></div>'+
+      '<span class="badge">'+badge+'</span></div>'+
+      '<div class="meter"><i style="width:'+Math.min(100,c.v>0?kv/c.v*100:100)+'%"></i></div>'+
+      '<div class="meter-lbl num"><span>KV-Anteil '+money(kv)+'</span><span>Cashback '+money(c.v)+'</span></div>'+
+      '<p>'+text+'</p>'+
+      '<div class="extra">'+(fy.prevSum>0.004
+        ? '<span>Vorsorge: <b class="num">'+money(fy.prevSum)+'</b> KV-Anteil zählt nicht mit und kann jederzeit eingereicht werden.</span>'
+        : '<span>Vorsorge-Rechnungen (als „Vorsorge“ markiert) zählen nicht mit und gefährden den Cashback nicht.</span>')+'</div></div>';
+  }
+  $("yearCard").innerHTML = html;
+  $("yearCard").hidden = !(st.kdp>0 || st.cbOn);
+}
+
+function renderStats(vb){
+  if(!vb.length){ $("stats").hidden = true; return; }
+  $("stats").hidden = false;
+  const by = {};
+  vb.forEach(b=>{ const o = by[b.cat] || (by[b.cat]={sum:0,n:0}); o.sum+=b.amount; o.n++; });
+  const rows = Object.entries(by).sort((a,b)=>b[1].sum-a[1].sum);
+  const max = rows[0][1].sum || 1;
+  $("stats").innerHTML = '<h2>Ausgaben nach Fachrichtung<span>'+(ui.year==="all"?"alle Jahre":ui.year)+'</span></h2>'+
+    rows.map(([id,o])=>{ const c=catOf(id);
+      return '<div class="srow" style="--c:'+c.c+'"><span class="cat">'+c.svg+'</span><div><div class="nm">'+plainLabel(c)+'<small class="num">'+o.n+'×</small></div><div class="tr"><i style="width:'+(o.sum/max*100)+'%"></i></div></div><span class="am num">'+money(o.sum)+'</span></div>';
+    }).join("");
+}
+
+function cardHTML(b){
+  const c = catOf(b.cat), sh = shares(b), st = billState(b);
+  const pill = {todo:'<span class="pill p-todo">einreichen</span>', wait:'<span class="pill p-wait">wartet auf Erstattung</span>', hold:'<span class="pill p-hold">für Cashback gesammelt</span>', done:'<span class="pill p-done">abgeschlossen</span>'}[st];
+  const sides = SIDES.map(({k,name})=>{
+    const ss = sideState(b,k), sub=b[k+"Sub"], paid=b[k+"Paid"];
+    const shown = paid ? received(b,k) : sh[k];
+    let hint = "";
+    const sf = shortfall(b,k);
+    if(sf>0.004) hint = '<small class="num neg">−'+money(sf)+' nicht erstattet</small>';
+    else if(k==="bh" && sh.kdp>0) hint = '<small class="num">−'+money(sh.kdp)+' Pauschale</small>';
+    else if(ss==="hold") hint = '<small>zurückhalten</small>';
+    else if(k==="kv" && b.vorsorge && ss==="todo" && S.settings.cbOn) hint = '<small>Vorsorge</small>';
+    let subNote = "";
+    if(isISO(sub)){ const d = daysSince(sub); subNote = '<small class="num">'+fmtShort(sub)+(ss==="wait" && d>0 ? ' · '+d+' Tg.' : '')+'</small>'; }
+    return '<div class="side st-'+ss+'">'+
+      '<div class="side-lbl">'+name+'<b class="num">'+money(shown)+'</b>'+hint+'</div>'+
+      '<button class="tick sub'+(sub?' on':'')+'" data-act="sub" data-side="'+k+'" data-id="'+esc(b.id)+'" aria-pressed="'+!!sub+'" aria-label="'+name+' eingereicht">'+
+        '<span class="box">'+CHECK+'</span><span class="tx">Eingereicht'+subNote+'</span></button>'+
+      '<button class="tick paid'+(paid?' on':'')+'" data-act="paid" data-side="'+k+'" data-id="'+esc(b.id)+'" aria-pressed="'+!!paid+'" aria-label="'+name+' erstattet">'+
+        '<span class="box">'+CHECK+'</span><span class="tx">'+(ss==="own"&&!paid?'Bescheid':'Erstattet')+(isISO(paid)?'<small class="num">'+fmtShort(paid)+'</small>':'')+'</span></button>'+
+    '</div>';
+  }).join("");
+  return '<div class="row" data-row="'+esc(b.id)+'"><div class="row-act"><button data-del="'+esc(b.id)+'" aria-label="Rechnung löschen">'+IC_TRASH+'Löschen</button></div>'+
+    '<article class="bill s-'+st+'">'+
+    '<button class="bill-head" data-edit="'+esc(b.id)+'" aria-label="'+esc(b.title)+' bearbeiten">'+
+      '<span class="cat" style="--c:'+c.c+'">'+c.svg+'</span>'+
+      '<span class="bh-main"><span class="t">'+esc(b.title||plainLabel(c))+(b.photo?'<span class="clip" aria-label="Beleg hinterlegt" title="Beleg hinterlegt">'+IC_CLIP+'</span>':'')+'</span><span class="sub num">'+fmtDate(b.date)+' · '+esc(plainLabel(c))+(b.note?' · '+esc(b.note):'')+'</span><span class="pills">'+pill+(b.vorsorge?'<span class="pill p-prev">Vorsorge</span>':'')+'</span></span>'+
+      '<span class="amt num">'+money(b.amount)+'</span>'+
+    '</button><div class="sides">'+sides+'</div></article></div>';
+}
+
+/* ---------- Hinweise: Einreichen lohnt sich / Jahresabschluss ---------- */
+const pendingKV = y => S.bills.filter(b=>yearOf(b)===y && !b.kvSub);
+function alertHTML(kind, ic, kicker, title, text, dl, btns){
+  return '<div class="alert a-'+kind+'" role="'+(kind==="go"||kind==="lost"?"alert":"status")+'"><div class="a-top"><span class="a-ic">'+ic+'</span><div><div class="a-k">'+kicker+'</div><h3>'+title+'</h3></div></div>'+
+    '<p>'+text+'</p>'+(dl?'<span class="a-dl num">'+dl+'</span>':'')+'<div class="a-btns">'+btns+'</div></div>';
+}
+function renderAlerts(){
+  const ty = thisYear(), seen = S.settings.seen || {}, out = [];
+  if(S.settings.cbOn){
+    [...new Set(S.bills.map(yearOf))].sort().forEach(y=>{
+      const fy = yearInfo(y), pend = pendingKV(y);
+      if(!pend.length) return;
+      const pendSum = r2(pend.reduce((a,b)=>a+shares(b).kv,0));
+      const past = y < ty, ny = +y+1;
+      const left = Math.ceil((new Date(ny+"-06-30") - new Date(todayISO()))/86400000);
+      const dl = past ? (left>=0 ? "Frist: 30.06."+ny+" · noch "+left+" Tage" : "Frist 30.06."+ny+" ist abgelaufen") : "";
+      const n = pend.length+" Rechnung"+(pend.length===1?"":"en");
+      if(fy.mode==="worth"){
+        out.push(alertHTML("go", IC_SEND, y+" · Cashback-Grenze überschritten", "Jetzt bei der KV einreichen!",
+          'Der KV-Anteil '+y+' liegt mit <b>'+money(fy.kvSum)+'</b> über dem Cashback von '+money(fy.cb.v)+'. Reiche die <b>'+n+' ('+money(pendSum)+')</b> ein'+(past?'.':' und ab jetzt auch jede neue aus '+y+'.'),
+          dl, '<button data-goyear="'+y+'">Rechnungen zeigen</button>'));
+      } else if(fy.mode==="lost"){
+        out.push(alertHTML("lost", IC_SEND, y+" · Cashback entfällt", "Restliche Rechnungen einreichen",
+          'Für '+y+' ist schon eine Rechnung bei der KV eingereicht, der Cashback ist damit weg. Reiche auch die übrigen <b>'+n+' ('+money(pendSum)+')</b> ein.',
+          dl, '<button data-goyear="'+y+'">Rechnungen zeigen</button>'));
+      } else if(fy.mode==="hold" && past && seen[y]!=="keep"){
+        out.push(alertHTML("keep", IC_GIFT, y+" ist abgeschlossen", "Nicht einreichen – Cashback behalten",
+          'Der KV-Anteil '+y+' liegt mit '+money(fy.kvSum)+' unter dem Cashback von <b>'+money(fy.cb.v)+'</b>'+(fy.cb.est?' (geschätzt, trag den echten Wert in den Einstellungen ein)':'')+'. Die Rechnungen nicht bei der KV einreichen, der Cashback kommt '+ny+'. Vorsorge darfst du trotzdem einreichen.',
+          "", '<button data-ack="'+y+':keep">Verstanden</button>'));
+      } else if(fy.mode==="hold" && y===ty && new Date().getMonth()===11 && seen[y]!=="dec"){
+        out.push(alertHTML("soon", IC_CAL, "Jahresende "+y, "Stand jetzt: nicht einreichen",
+          'Bis zur Cashback-Grenze fehlen noch '+money(r2(fy.cb.v-fy.kvSum))+' KV-Anteil. Im Januar steht die Entscheidung fest, einreichen kannst du dann bis 30.06.'+ny+'.',
+          "", '<button data-ack="'+y+':dec">Verstanden</button>'));
+      }
+    });
+  }
+  $("alerts").innerHTML = out.join("");
+}
+function showPending(y){
+  ui.year = y; ui.filter = "todo"; ui.q = ""; $("q").value = "";
+  render();
+  goPage("bills");
+}
+let msBusy = false;
+function checkMilestones(){
+  if(msBusy || !S.settings.cbOn || $("sheet").classList.contains("open")) return;
+  const seen = S.settings.seen || {};
+  for(const y of [...new Set(S.bills.map(yearOf))].sort()){
+    const fy = yearInfo(y);
+    if(fy.mode==="worth" && !seen[y+"-worth"]){
+      msBusy = true;
+      S.settings.seen = Object.assign({}, seen, {[y+"-worth"]:true});
+      S._ts = Date.now(); persist(); schedulePush();
+      showWorthModal(y);
+      msBusy = false;
+      return;
+    }
+  }
+}
+function showWorthModal(y){
+  const fy = yearInfo(y), pend = pendingKV(y).sort((a,b)=>a.date.localeCompare(b.date));
+  openSheet("Einreichen lohnt sich",
+    '<div class="celebrate"><div class="big-ic">'+IC_SEND+'</div><h3>Ab jetzt bei der KV einreichen</h3>'+
+    '<p>Dein KV-Anteil '+y+' liegt mit <b>'+money(fy.kvSum)+'</b> über dem Cashback von <b>'+money(fy.cb.v)+'</b>. Einreichen bringt dir <b>'+money(r2(fy.kvSum-fy.cb.v))+' mehr</b>.</p></div>'+
+    (pend.length?'<div class="glabel">Jetzt einreichen ('+pend.length+')</div><div class="blist">'+pend.map(b=>'<div><span>'+esc(b.title)+' <small class="num">'+fmtShort(b.date)+'</small></span><b class="num">'+money(shares(b).kv)+'</b></div>').join("")+'</div>':'')+
+    '<button class="primary" id="wm-show">Rechnungen zeigen</button>'+
+    '<p class="hint">Neue Rechnungen aus '+y+' kannst du ab jetzt direkt einreichen. Der grüne Hinweis oben bleibt, bis alles eingereicht ist.</p>', null, null, "Später");
+  $("wm-show").onclick = ()=>{ closeSheet(); showPending(y); };
+}
+
+/* ---------- Jahresbericht als PDF und PNG ---------- */
+const RW = 1240, RH = 1754, RM = 80;
+const RC = {ink:"#121920",muted:"#66717D",line:"#DCE1E7",soft:"#F4F6F8",accent:"#0B6E77",hero:"#0C3B41",todo:"#D0433A",wait:"#C98200",done:"#1D9455",own:"#7457E8",hold:"#2B74E0",prev:"#0E8A7E",lost:"#9AA3AD"};
+const RF = (w,s)=>w+" "+s+'px -apple-system, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif';
+function drawAppIcon(ctx,x,y,size){
+  ctx.save(); ctx.translate(x,y); ctx.scale(size/100,size/100);
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(0,0,100,100,22) : ctx.rect(0,0,100,100); ctx.clip();
+  const g = ctx.createLinearGradient(0,0,100,100); g.addColorStop(0,"#11858F"); g.addColorStop(1,"#0A3940"); ctx.fillStyle=g; ctx.fillRect(0,0,100,100);
+  ctx.fillStyle="#fff"; ctx.fill(new Path2D("M29 17h38a5 5 0 0 1 5 5v58l-6.5-4.5-6.5 4.5-6.5-4.5-6.5 4.5-6.5-4.5-6.5 4.5-6.5-4.5V22a5 5 0 0 1 5-5z"));
+  ctx.globalAlpha=.35; ctx.fillStyle="#0B6E77"; ctx.fillRect(33,28,26,4.5); ctx.fillRect(33,38,18,4.5); ctx.globalAlpha=1;
+  ctx.fillStyle="#7457E8"; ctx.fillRect(33,51,14,9); ctx.fillStyle="#2B74E0"; ctx.fillRect(49,51,14,9);
+  ctx.beginPath(); ctx.arc(70,71,15,0,Math.PI*2); ctx.fillStyle="#1D9455"; ctx.fill(); ctx.lineWidth=4; ctx.strokeStyle="#fff"; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(63,71.5); ctx.lineTo(67.8,76.3); ctx.lineTo(76.8,66.7); ctx.lineWidth=4.2; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.stroke();
+  ctx.restore();
+}
+function sideWord(b,k){
+  const st = sideState(b,k), sub=b[k+"Sub"], paid=b[k+"Paid"];
+  if(st==="done") return [received(b,k)===0 && shortfall(b,k)>0 ? "nicht erstattet" : "erstattet"+(isISO(paid)?" "+fmtShort(paid):""), shortfall(b,k)>0.004 ? RC.todo : RC.done];
+  if(st==="wait") return ["eingereicht"+(isISO(sub)?" "+fmtShort(sub):""), RC.wait];
+  if(st==="own") return ["auf Pauschale", RC.own];
+  if(st==="hold") return ["zurückgehalten", RC.hold];
+  return ["einreichen", RC.todo];
+}
+function buildReport(y){
+  const bills = S.bills.filter(b=>yearOf(b)===y).sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
+  const fy = yearInfo(y);
+  const t = {total:0, recBh:0, recKv:0, expBh:0, expKv:0, wait:0, todo:0, hold:0, lost:0, own:fy.kdpUsed};
+  const months = new Array(12).fill(0), cats = {};
+  bills.forEach(b=>{
+    const sh = shares(b); t.total += b.amount; t.expBh += sh.bh; t.expKv += sh.kv;
+    months[+b.date.slice(5,7)-1] += b.amount;
+    const c = cats[b.cat] || (cats[b.cat]={sum:0,n:0}); c.sum += b.amount; c.n++;
+    SIDES.forEach(({k})=>{
+      const st = sideState(b,k);
+      if(st==="done"){ t[k==="bh"?"recBh":"recKv"] += received(b,k); t.lost += shortfall(b,k); }
+      else if(st==="wait") t.wait += sh[k];
+      else if(st==="todo") t.todo += sh[k];
+      else if(st==="hold") t.hold += sh[k];
+    });
+  });
+  const pages = []; let c, ctx, yy;
+  const txt = (s,x,y,font,color,align)=>{ ctx.font=font; ctx.fillStyle=color; ctx.textAlign=align||"left"; ctx.fillText(s,x,y); };
+  const fit = (s,maxW,font)=>{ ctx.font=font; if(ctx.measureText(s).width<=maxW) return s; while(s.length>1 && ctx.measureText(s+"…").width>maxW) s=s.slice(0,-1); return s+"…"; };
+  const rr = (x,y,w,h,r,fill,stroke)=>{ ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h); if(fill){ ctx.fillStyle=fill; ctx.fill(); } if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.stroke(); } };
+  const wrap = (s,x,y,maxW,lh,font,color)=>{ ctx.font=font; ctx.fillStyle=color; ctx.textAlign="left"; const words=s.split(" "); let line=""; for(const w of words){ const test=line?line+" "+w:w; if(ctx.measureText(test).width>maxW && line){ ctx.fillText(line,x,y); y+=lh; line=w; } else line=test; } if(line){ ctx.fillText(line,x,y); y+=lh; } return y; };
+  function newPage(){
+    c = document.createElement("canvas"); c.width=RW; c.height=RH; ctx = c.getContext("2d");
+    ctx.fillStyle="#fff"; ctx.fillRect(0,0,RW,RH); pages.push(c); yy = RM;
+    if(pages.length>1){ drawAppIcon(ctx,RM,yy-10,44); txt("Jahresbericht "+y+" · Fortsetzung",RM+60,yy+22,RF(700,24),RC.ink); yy += 70; }
+  }
+  const need = h=>{ if(yy+h > RH-RM-40){ newPage(); return true; } return false; };
+  newPage();
+
+  // Kopf
+  drawAppIcon(ctx,RM,yy,104);
+  txt("Jahresbericht "+y, RM+130, yy+56, RF(800,54), RC.ink);
+  txt("Erstattungen Beihilfe & Krankenversicherung · Stand "+fmtDate(todayISO()), RM+132, yy+94, RF(500,22), RC.muted);
+  yy += 140;
+
+  // Übersicht
+  rr(RM,yy,RW-2*RM,256,26,RC.hero);
+  txt("Arztkosten "+y, RM+36, yy+52, RF(600,22), "rgba(255,255,255,.75)");
+  txt(money(t.total), RM+36, yy+122, RF(800,68), "#fff");
+  txt(bills.length+" Rechnung"+(bills.length===1?"":"en")+" vorgestreckt", RM+36, yy+160, RF(500,21), "rgba(255,255,255,.75)");
+  const rx = RW-RM-36;
+  [["Erstattet", t.recBh+t.recKv],["Noch offen", t.wait+t.todo],["Eigenanteil bisher", t.own+t.lost]].forEach(([l,v],i)=>{
+    txt(l, rx, yy+44+i*56, RF(500,19), "rgba(255,255,255,.75)", "right");
+    txt(money(v), rx, yy+70+i*56, RF(700,24), "#fff", "right");
+  });
+  // Balken
+  const bx = RM+36, bw = RW-2*RM-72, by = yy+214; let cx = bx;
+  rr(bx,by,bw,16,8,"rgba(255,255,255,.15)");
+  [[t.recBh+t.recKv,RC.done],[t.wait,RC.wait],[t.todo,RC.todo],[t.hold,RC.hold],[t.own,RC.own],[t.lost,RC.lost]].forEach(([v,col])=>{
+    if(t.total<=0 || v<=0.004) return; const w = v/t.total*bw; ctx.fillStyle=col; ctx.fillRect(cx,by,Math.max(3,w-2),16); cx += w;
+  });
+  yy += 286;
+
+  // Kennzahlen
+  const boxes = [
+    ["Beihilfe erstattet", t.recBh, RC.done, "erwartet "+money(t.expBh)],
+    ["KV erstattet", t.recKv, RC.done, "erwartet "+money(t.expKv)],
+    ["Noch offen", t.wait+t.todo, RC.wait, "wartet "+money(t.wait)+" · einreichen "+money(t.todo)],
+    ["Kostendämpfungspauschale", t.own, RC.own, "von "+money(S.settings.kdp)+" angerechnet"],
+    ["Für Cashback gesammelt", t.hold, RC.hold, S.settings.cbOn ? "Cashback "+money(fy.cb.v)+(fy.cb.est?" (geschätzt)":"") : "Cashback aus"],
+    ["Nicht erstattet", t.lost, RC.todo, "laut Bescheid"]
+  ];
+  const gw = (RW-2*RM-2*20)/3;
+  boxes.forEach(([l,v,col,sub],i)=>{
+    const x = RM + (i%3)*(gw+20), by2 = yy + Math.floor(i/3)*150;
+    rr(x,by2,gw,130,18,RC.soft);
+    txt(fit(l,gw-40,RF(600,19)), x+20, by2+38, RF(600,19), RC.muted);
+    txt(money(v), x+20, by2+82, RF(800,34), col);
+    txt(fit(sub,gw-40,RF(500,16)), x+20, by2+112, RF(500,16), RC.muted);
+  });
+  yy += 320;
+
+  // Pauschale & Cashback
+  const lines = [];
+  const kLeft = r2(Math.max(0,S.settings.kdp-fy.kdpUsed));
+  if(S.settings.kdp>0) lines.push([RC.own, "Kostendämpfungspauschale: "+money(fy.kdpUsed)+" von "+money(S.settings.kdp)+" angerechnet"+(kLeft>0?", noch "+money(kLeft)+" bis die Beihilfe zahlt.":", Pauschale erreicht.")]);
+  if(S.settings.cbOn){
+    const m = fy.mode==="worth" ? "Einreichen lohnt sich: KV-Anteil "+money(fy.kvSum)+" liegt über dem Cashback von "+money(fy.cb.v)+" (+"+money(r2(fy.kvSum-fy.cb.v))+")."
+      : fy.mode==="lost" ? "Cashback entfällt, weil bereits bei der KV eingereicht wurde. Alle Rechnungen einreichen."
+      : "Nicht einreichen: KV-Anteil "+money(fy.kvSum)+" liegt unter dem Cashback von "+money(fy.cb.v)+(fy.cb.est?" (geschätzt)":"")+". Auszahlung "+(+y+1)+".";
+    lines.push([fy.mode==="worth"?RC.done:fy.mode==="lost"?RC.todo:RC.hold, "HUK-Cashback: "+m]);
+    if(fy.prevSum>0.004) lines.push([RC.prev, "Vorsorge: "+money(fy.prevSum)+" KV-Anteil, zählt nicht für den Cashback."]);
+    if(y < thisYear()) lines.push([RC.muted, "Frist zum Einreichen bei der KV: 30.06."+(+y+1)+"."]);
+  }
+  if(lines.length){
+    txt("Stand der Jahresgrenzen", RM, yy+10, RF(700,26), RC.ink); yy += 40;
+    lines.forEach(([col,s])=>{ need(70); ctx.fillStyle=col; ctx.beginPath(); ctx.arc(RM+8,yy+12,7,0,Math.PI*2); ctx.fill(); yy = wrap(s, RM+28, yy+20, RW-2*RM-28, 30, RF(500,21), RC.ink) + 8; });
+    yy += 16;
+  }
+
+  // Monate
+  need(290);
+  txt("Arztkosten pro Monat", RM, yy+10, RF(700,26), RC.ink); yy += 30;
+  const mMax = Math.max(1,...months), chH = 170, slot = (RW-2*RM)/12;
+  ctx.strokeStyle=RC.line; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(RM,yy+chH+20); ctx.lineTo(RW-RM,yy+chH+20); ctx.stroke();
+  months.forEach((v,i)=>{
+    const h = v/mMax*chH, x = RM + i*slot + slot*0.2, w = slot*0.6;
+    if(v>0){ rr(x, yy+20+chH-h, w, h, 6, RC.accent); txt(Math.round(v)+" €", x+w/2, yy+12+chH-h, RF(600,15), RC.ink, "center"); }
+    txt(MONTHS[i].slice(0,3), x+w/2, yy+chH+48, RF(500,16), RC.muted, "center");
+  });
+  yy += chH + 80;
+
+  // Fachrichtungen
+  const crow = Object.entries(cats).sort((a,b)=>b[1].sum-a[1].sum);
+  if(crow.length){
+    need(60+Math.min(crow.length,4)*44);
+    txt("Nach Fachrichtung", RM, yy+10, RF(700,26), RC.ink); yy += 34;
+    const cMax = crow[0][1].sum || 1;
+    crow.forEach(([id,o])=>{
+      need(44); const cc = catOf(id);
+      ctx.fillStyle = cc.c; ctx.beginPath(); ctx.arc(RM+10,yy+14,9,0,Math.PI*2); ctx.fill();
+      txt(fit(plainLabel(cc)+"  ("+o.n+"×)",300,RF(600,19)), RM+30, yy+21, RF(600,19), RC.ink);
+      rr(RM+340, yy+6, RW-2*RM-340-160, 16, 8, RC.soft);
+      rr(RM+340, yy+6, Math.max(8,(RW-2*RM-340-160)*o.sum/cMax), 16, 8, cc.c);
+      txt(money(o.sum), RW-RM, yy+21, RF(700,19), RC.ink, "right");
+      yy += 44;
+    });
+    yy += 20;
+  }
+
+  // Tabelle
+  const X = {d:RM+16, t:RM+150, a:RM+640, bh:RM+680, kv:RM+900};
+  const head = ()=>{ rr(RM,yy,RW-2*RM,48,12,RC.soft); [["Datum",X.d],["Bezeichnung",X.t],["Beihilfe",X.bh],["KV",X.kv]].forEach(([l,x])=>txt(l,x,yy+31,RF(700,17),RC.muted)); txt("Betrag",X.a,yy+31,RF(700,17),RC.muted,"right"); yy += 58; };
+  need(130);
+  txt("Alle Rechnungen "+y, RM, yy+10, RF(700,26), RC.ink); yy += 30;
+  head();
+  if(!bills.length){ txt("Keine Rechnungen in "+y+".", RM+16, yy+30, RF(500,20), RC.muted); yy += 50; }
+  bills.forEach(b=>{
+    if(need(74)) head();
+    const sh = shares(b), cc = catOf(b.cat);
+    txt(fmtDate(b.date), X.d, yy+26, RF(500,19), RC.ink);
+    txt(fit(b.title||plainLabel(cc), X.a-X.t-130, RF(700,20)), X.t, yy+26, RF(700,20), RC.ink);
+    txt(fit(plainLabel(cc)+(b.vorsorge?" · Vorsorge":"")+(b.note?" · "+b.note:""), X.a-X.t-130, RF(500,16)), X.t, yy+52, RF(500,16), RC.muted);
+    txt(money(b.amount), X.a, yy+26, RF(700,20), RC.ink, "right");
+    SIDES.forEach(({k})=>{
+      const x = k==="bh"?X.bh:X.kv, [w,col] = sideWord(b,k);
+      const v = b[k+"Paid"] ? received(b,k) : sh[k];
+      txt(money(v)+(k==="bh"&&sh.kdp>0?"  (−"+money(sh.kdp)+")":""), x, yy+26, RF(600,19), RC.ink);
+      txt(w, x, yy+52, RF(600,16), col);
+    });
+    ctx.strokeStyle=RC.line; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(RM,yy+68); ctx.lineTo(RW-RM,yy+68); ctx.stroke();
+    yy += 74;
+  });
+  if(bills.length){ need(50); txt("Summe", X.t, yy+30, RF(800,20), RC.ink); txt(money(t.total), X.a, yy+30, RF(800,20), RC.ink, "right"); txt(money(t.expBh), X.bh, yy+30, RF(700,19), RC.ink); txt(money(t.expKv), X.kv, yy+30, RF(700,19), RC.ink); }
+
+  pages.forEach((pc,i)=>{ const x = pc.getContext("2d"); x.font=RF(500,16); x.fillStyle=RC.muted; x.textAlign="center"; x.fillText("Erstattungen · Jahresbericht "+y+" · Seite "+(i+1)+" von "+pages.length, RW/2, RH-40); });
+  return pages;
+}
+const toBlobP = (cv,type,q)=>new Promise(res=>cv.toBlob(res,type,q));
+async function pagesToPdf(pages){
+  const te = new TextEncoder(), parts = [], offs = []; let len = 0;
+  const push = x=>{ const b = typeof x==="string" ? te.encode(x) : x; parts.push(b); len += b.length; };
+  push("%PDF-1.4\n"); push(new Uint8Array([37,226,227,207,211,10]));
+  const n = pages.length, total = 3 + 3*n;
+  const obj = (id, body)=>{ offs[id] = len; push(id+" 0 obj\n"); body(); push("\nendobj\n"); };
+  obj(1, ()=>push("<< /Type /Catalog /Pages 2 0 R >>"));
+  obj(2, ()=>push("<< /Type /Pages /Kids ["+pages.map((_,i)=>(3+3*i)+" 0 R").join(" ")+"] /Count "+n+" >>"));
+  for(let i=0;i<n;i++){
+    const pid = 3+3*i, cid = pid+1, iid = pid+2;
+    const jpg = new Uint8Array(await (await toBlobP(pages[i],"image/jpeg",0.9)).arrayBuffer());
+    const content = "q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";
+    obj(pid, ()=>push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 "+iid+" 0 R >> >> /Contents "+cid+" 0 R >>"));
+    obj(cid, ()=>{ push("<< /Length "+content.length+" >>\nstream\n"); push(content); push("\nendstream"); });
+    obj(iid, ()=>{ push("<< /Type /XObject /Subtype /Image /Width "+pages[i].width+" /Height "+pages[i].height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\nstream\n"); push(jpg); push("\nendstream"); });
+  }
+  const xref = len;
+  let x = "xref\n0 "+total+"\n0000000000 65535 f \n";
+  for(let id=1; id<total; id++) x += String(offs[id]).padStart(10,"0")+" 00000 n \n";
+  push(x+"trailer\n<< /Size "+total+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF");
+  return new Blob(parts, {type:"application/pdf"});
+}
+async function pagesToPng(pages){
+  if(pages.length===1) return toBlobP(pages[0],"image/png");
+  const c = document.createElement("canvas"); c.width = RW; c.height = RH*pages.length;
+  const ctx = c.getContext("2d"); pages.forEach((p,i)=>ctx.drawImage(p,0,i*RH));
+  return toBlobP(c,"image/png");
+}
+async function claudeUse(name){ try{ return (window.claude && window.claude.use) ? await window.claude.use(name) : null; }catch(e){ return null; } }
+async function deliverFile(blob, filename){
+  if(inPreview){
+    const dl = await claudeUse("downloads");
+    if(dl){
+      try{ await dl.save({filename, data:blob}); return "ok"; }
+      catch(e){ try{ await dl.save({filename, data:new Uint8Array(await blob.arrayBuffer())}); return "ok"; }catch(e2){ return "fail"; } }
+    }
+  }
+  try{
+    const file = new File([blob], filename, {type:blob.type});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:filename}); return "ok"; }
+  }catch(e){ if(e && e.name==="AbortError") return "cancel"; }
+  try{
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+    return "ok";
+  }catch(e){ return "fail"; }
+}
+let repUrls = [];
+function openReport(y){
+  const years = [...new Set(S.bills.map(yearOf).concat([thisYear()]))].sort().reverse();
+  openSheet("Jahresbericht",
+    '<div class="rep-chips">'+years.map(v=>'<button class="chip" data-ry="'+v+'" aria-pressed="'+(v===y)+'">'+v+'</button>').join("")+'</div>'+
+    '<button class="primary" id="rp-pdf" disabled>Als PDF sichern</button>'+
+    '<button class="secondary" id="rp-png" disabled>Als Bild (PNG) sichern</button>'+
+    '<p class="hint">Auf dem iPhone öffnet sich das Teilen-Menü: „In Dateien sichern“, „Bild sichern“ oder direkt per Mail verschicken.</p>'+
+    '<div class="rep-prev" id="rp">Bericht wird erstellt …</div>', null, null, "Schließen");
+  $("sheetBody").querySelectorAll("[data-ry]").forEach(b=>b.onclick = ()=>openReport(b.dataset.ry));
+  repUrls.forEach(u=>URL.revokeObjectURL(u)); repUrls = [];
+  setTimeout(async ()=>{
+    try{
+      const pages = buildReport(y);
+      const [pdf, png] = await Promise.all([pagesToPdf(pages), pagesToPng(pages)]);
+      const rp = $("rp"); if(!rp) return;
+      rp.innerHTML = "";
+      for(const p of pages){ const u = URL.createObjectURL(await toBlobP(p,"image/png")); repUrls.push(u); const img = new Image(); img.src = u; img.alt = "Jahresbericht "+y; rp.appendChild(img); }
+      const name = "Erstattungen-Jahresbericht-"+y;
+      const go = async (blob, file)=>{ const r = await deliverFile(blob, file); if(r==="ok") showToast("Bericht bereit: "+file, null); else if(r==="fail") showToast("Sichern ist hier nicht möglich. In der App auf dem iPhone klappt es.", null); };
+      $("rp-pdf").disabled = false; $("rp-png").disabled = false;
+      $("rp-pdf").onclick = ()=>go(pdf, name+".pdf");
+      $("rp-png").onclick = ()=>go(png, name+".png");
+    }catch(e){ const rp=$("rp"); if(rp) rp.textContent = "Der Bericht konnte nicht erstellt werden."; }
+  }, 350);
+}
+
+/* ---------- Toast ---------- */
+let undoState = null, toastTimer = null;
+function showToast(text, undo){
+  $("toastText").textContent = text;
+  $("toastUndo").textContent = undo ? "Rückgängig" : "";
+  undoState = undo;
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ $("toast").classList.remove("show"); undoState=null; }, 4000);
+}
+$("toastUndo").addEventListener("click", ()=>{ if(undoState){ undoState(); } $("toast").classList.remove("show"); undoState=null; });
+
+/* ---------- Abhaken direkt in der Karte ---------- */
+function toggle(id, act, k, confirmed){
+  const b = S.bills.find(x=>x.id===id); if(!b) return;
+  const turningOn = !b[k+(act==="sub"?"Sub":"Paid")];
+  if(k==="kv" && turningOn && !b.kvSub && !b.vorsorge && !confirmed && yearInfo(yearOf(b)).mode==="hold"){ confirmCashback(b, ()=>toggle(id, act, k, true)); return; }
+  const before = Object.assign({}, b), n = Object.assign({}, b);
+  const name = k==="bh" ? "Beihilfe" : "KV", amt = money(shares(b)[k]);
+  let msg;
+  if(act==="sub"){
+    if(n[k+"Sub"]){ n[k+"Sub"]=null; n[k+"Paid"]=null; n[k+"Amt"]=null; msg=name+": nicht mehr eingereicht"; }
+    else { n[k+"Sub"]=todayISO(); msg = (k==="bh" && shares(b).bh===0) ? "Beihilfe: eingereicht, wird auf die Pauschale angerechnet" : name+": eingereicht, "+amt+" offen"; }
+  } else {
+    if(n[k+"Paid"]){ n[k+"Paid"]=null; n[k+"Amt"]=null; msg=name+": wieder offen"; }
+    else { n[k+"Paid"]=todayISO(); if(!n[k+"Sub"]) n[k+"Sub"]=todayISO(); msg = name+": "+amt+" erstattet"; }
+  }
+  upsertBill(n);
+  showToast(msg, ()=>upsertBill(before));
+}
+function confirmCashback(b, go){
+  const y = yearOf(b), fy = yearInfo(y);
+  openSheet("Cashback "+y+" aufgeben?",
+    '<div class="info">Für '+y+' liegt dein KV-Anteil (ohne Vorsorge) bei <b class="num">'+money(fy.kvSum)+'</b>. Der Cashback beträgt <b class="num">'+money(fy.cb.v)+'</b>.<br><br>'+
+    'Wenn du jetzt bei der KV einreichst, entfällt der Cashback für '+y+'. Du bekämst dann voraussichtlich <b class="num">'+money(fy.cb.v-fy.kvSum)+' weniger</b>.<br><br>Ist das eine Vorsorge-Rechnung? Dann markiere sie in der Rechnung als „Vorsorge“, das gefährdet den Cashback nicht.</div>'+
+    '<button class="secondary" id="cb-keep">Nicht einreichen</button>'+
+    '<button class="secondary" id="cb-prev">Ist Vorsorge – markieren und einreichen</button>'+
+    '<button class="danger" id="cb-go">Trotzdem bei der KV einreichen</button>', null);
+  $("cb-keep").onclick = closeSheet;
+  $("cb-go").onclick = ()=>{ closeSheet(); go(); };
+  $("cb-prev").onclick = ()=>{ closeSheet(); const n = Object.assign({}, b, {vorsorge:true, kvSub:todayISO()}); upsertBill(n); showToast("Als Vorsorge markiert und bei der KV eingereicht", ()=>upsertBill(b)); };
+}
+function deleteBill(id){
+  const b = S.bills.find(x=>x.id===id); if(!b) return;
+  removeBill(id);
+  showToast("„"+(b.title||"Rechnung")+"“ gelöscht", ()=>upsertBill(b));
+}
+
+/* ---------- Wischen zum Löschen (wie in iOS-Listen) ---------- */
+let swipe = null, openRow = null, suppressClick = false;
+function closeOpenRow(){ if(openRow){ openRow.style.transform=""; openRow=null; } }
+document.addEventListener("touchstart", e=>{
+  const bill = e.target.closest(".bill");
+  if(openRow && (!bill || bill!==openRow) && !e.target.closest(".row-act")) closeOpenRow();
+  if(!bill || e.target.closest("#sheet")) return;
+  const t = e.touches[0];
+  swipe = {bill, x:t.clientX, y:t.clientY, dx:0, mode:null, base: bill===openRow ? -92 : 0};
+}, {passive:true});
+document.addEventListener("touchmove", e=>{
+  if(!swipe) return;
+  const t = e.touches[0], dx = t.clientX-swipe.x, dy = t.clientY-swipe.y;
+  if(!swipe.mode){
+    if(Math.abs(dx)>10 && Math.abs(dx)>Math.abs(dy)*1.3) swipe.mode="h";
+    else if(Math.abs(dy)>10) swipe.mode="v";
+  }
+  if(swipe.mode==="h"){
+    e.preventDefault();
+    swipe.dx = dx;
+    const x = Math.min(0, Math.max(-140, swipe.base+dx));
+    swipe.bill.classList.add("dragging");
+    swipe.bill.style.transform = "translateX("+x+"px)";
+  }
+}, {passive:false});
+document.addEventListener("touchend", ()=>{
+  if(!swipe) return;
+  const s = swipe; swipe = null;
+  if(s.mode!=="h") return;
+  suppressClick = true; setTimeout(()=>suppressClick=false, 350);
+  s.bill.classList.remove("dragging");
+  const x = s.base + s.dx;
+  if(x < -200){ deleteBill(s.bill.parentElement.dataset.row); return; }
+  if(x < -46){ s.bill.style.transform = "translateX(-92px)"; openRow = s.bill; }
+  else { s.bill.style.transform = ""; if(openRow===s.bill) openRow=null; }
+});
+
+document.addEventListener("click", e=>{
+  if(suppressClick){ e.preventDefault(); e.stopPropagation(); return; }
+  const t = e.target.closest("[data-act],[data-edit],[data-year],[data-filter],[data-del],[data-report],[data-goyear],[data-ack]");
+  if(!t || t.closest("#sheet")) return;
+  if(t.dataset.del){ openRow=null; deleteBill(t.dataset.del); return; }
+  if(t.dataset.report){ openReport(t.dataset.report); return; }
+  if(t.dataset.goyear){ showPending(t.dataset.goyear); return; }
+  if(t.dataset.ack){ const [y,v]=t.dataset.ack.split(":"); S.settings.seen = Object.assign({}, S.settings.seen||{}, {[y]:v}); save(); return; }
+  if(openRow){ closeOpenRow(); return; }
+  if(t.dataset.act) toggle(t.dataset.id, t.dataset.act, t.dataset.side);
+  else if(t.dataset.edit) openForm(t.dataset.edit);
+  else if(t.dataset.year){ ui.year=t.dataset.year; render(); }
+  else if(t.dataset.filter){ ui.filter=t.dataset.filter; render(); }
+}, true);
+$("q").addEventListener("input", e=>{ ui.q = e.target.value.trim(); render(); });
+window.addEventListener("scroll", ()=>{ $("topbar").classList.toggle("scrolled", window.scrollY > 40); }, {passive:true});
+
+/* ---------- Sheet: Bottom Sheet mit Wischen nach unten ---------- */
+let sheetSave = null;
+function openSheet(title, body, onSave, saveLabel, cancelLabel){
+  $("sheetTitle").textContent = title;
+  $("sheetBody").innerHTML = body;
+  $("sheetSave").textContent = saveLabel || "Sichern";
+  $("sheetSave").style.visibility = onSave ? "visible" : "hidden";
+  $("sheetCancel").textContent = cancelLabel || (onSave ? "Abbrechen" : "Fertig");
+  sheetSave = onSave;
+  const sh = $("sheet"); sh.style.transform = "";
+  $("scrim").classList.add("open");
+  requestAnimationFrame(()=>sh.classList.add("open"));
+  document.documentElement.style.overflow="hidden";
+  $("sheetBody").scrollTop = 0;
+}
+function closeSheet(){
+  const sh = $("sheet"); sh.classList.remove("open"); sh.style.transform = "";
+  $("scrim").classList.remove("open");
+  document.documentElement.style.overflow=""; sheetSave=null;
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  setTimeout(checkMilestones, 450);
+}
+$("scrim").addEventListener("click", closeSheet);
+$("sheetCancel").addEventListener("click", closeSheet);
+$("sheetSave").addEventListener("click", ()=>{ if(sheetSave) sheetSave(); });
+document.addEventListener("keydown", e=>{ if(e.key!=="Escape") return; if(!$("viewer").hidden){ closeViewer(); return; } if($("sheet").classList.contains("open")) closeSheet(); });
+(function sheetDrag(){
+  const sh = $("sheet"), body = $("sheetBody");
+  let d = null;
+  sh.addEventListener("touchstart", e=>{
+    if(e.target.closest("input,textarea,select")) return;
+    const inHead = !!e.target.closest("#sheetHead");
+    if(!inHead && body.scrollTop > 0) return;
+    d = {y:e.touches[0].clientY, t:Date.now(), dy:0, active:false, inHead};
+  }, {passive:true});
+  sh.addEventListener("touchmove", e=>{
+    if(!d) return;
+    const dy = e.touches[0].clientY - d.y;
+    if(!d.active){
+      if(dy > 8 && (d.inHead || body.scrollTop<=0)){ d.active = true; sh.classList.add("dragging"); }
+      else if(dy < -8){ d = null; return; }
+      else return;
+    }
+    e.preventDefault();
+    d.dy = Math.max(0, dy);
+    sh.style.transform = "translateY("+d.dy+"px)";
+    $("scrim").style.opacity = String(Math.max(0, 1 - d.dy/400));
+  }, {passive:false});
+  sh.addEventListener("touchend", ()=>{
+    if(!d) return;
+    const g = d; d = null;
+    sh.classList.remove("dragging"); $("scrim").style.opacity = "";
+    if(!g.active) return;
+    const v = g.dy / Math.max(1, Date.now()-g.t);
+    if(g.dy > 120 || (g.dy > 40 && v > 0.6)) closeSheet();
+    else sh.style.transform = "";
+  });
+})();
+
+/* ---------- Formular ---------- */
+function statusRows(b){
+  return SIDES.map(({k,long})=>{
+    const sub = b ? b[k+"Sub"] : null, paid = b ? b[k+"Paid"] : null, amt = b ? b[k+"Amt"] : null;
+    return '<div class="glabel">'+long+'</div><div class="group">'+
+      '<div class="st-row"><div class="nm">Eingereicht<small>Datum der Einreichung</small>'+
+        '<input type="date" id="d-'+k+'Sub" value="'+(isISO(sub)?sub:"")+'" '+(sub?'':'hidden')+' aria-label="'+long+' eingereicht am"></div>'+
+        '<label class="sw"><input type="checkbox" id="c-'+k+'Sub" data-k="'+k+'" data-f="Sub" '+(sub?'checked':'')+' aria-label="'+long+' eingereicht"><span></span></label></div>'+
+      '<div class="st-row"><div class="nm">Erstattet<small>Datum und tatsächlich erstatteter Betrag</small>'+
+        '<div id="pb-'+k+'" '+(paid?'':'hidden')+'><input type="date" id="d-'+k+'Paid" value="'+(isISO(paid)?paid:"")+'" aria-label="'+long+' erstattet am">'+
+        '<div class="paidbox"><label class="eur"><input id="a-'+k+'" class="num" inputmode="decimal" autocomplete="off" value="'+(typeof amt==="number"?amountStr(amt):"")+'" aria-label="'+long+' erstatteter Betrag">€</label>'+
+        '<button type="button" class="mini-btn" data-zero="'+k+'">Nichts erstattet</button></div></div></div>'+
+        '<label class="sw"><input type="checkbox" id="c-'+k+'Paid" data-k="'+k+'" data-f="Paid" '+(paid?'checked':'')+' aria-label="'+long+' erstattet"><span></span></label></div>'+
+    '</div>';
+  }).join("");
+}
+
+function openForm(id){
+  const b = id ? S.bills.find(x=>x.id===id) : null;
+  if(id && !b) return;
+  let cat = b ? b.cat : "arzt";
+  let prevTouched = !!b;
+  const groups = [...new Set(CATS.map(c=>c.g))];
+  const body =
+    '<div class="group">'+
+      '<div class="field"><label for="f-amount">Rechnungsbetrag</label><div class="money"><input id="f-amount" class="num" inputmode="decimal" autocomplete="off" placeholder="0,00" value="'+(b?amountStr(b.amount):"")+'"><span>€</span></div><div class="split num" id="f-split"></div></div>'+
+      '<div class="field"><label for="f-title">Bezeichnung</label><input id="f-title" placeholder="z. B. Zahnreinigung" value="'+esc(b?b.title:"")+'" autocomplete="off" enterkeyhint="next"></div>'+
+      '<div class="field"><label for="f-date">Behandlungsdatum</label><input id="f-date" type="date" value="'+(b?b.date:todayISO())+'"><small>Zählt für dieses Jahr, auch wenn die Rechnung erst später kommt.</small></div>'+
+      '<div class="field"><label for="f-note">Praxis oder Notiz (optional)</label><input id="f-note" placeholder="z. B. Dr. Weber" value="'+esc(b?b.note:"")+'" autocomplete="off" enterkeyhint="done"></div>'+
+    '</div>'+
+    '<div class="glabel">Beleg</div><div class="group"><div class="photo-box" id="f-photo"></div></div>'+
+    '<div class="group"><div class="st-row"><div class="nm">Vorsorge<small>Check-up, Früherkennung u. ä. Gefährdet den HUK-Cashback nicht und kann sofort eingereicht werden.</small></div>'+
+      '<label class="sw"><input type="checkbox" id="f-prev" '+(b&&b.vorsorge?'checked':'')+' aria-label="Vorsorge"><span></span></label></div></div>'+
+    '<div class="glabel">Fachrichtung</div>'+
+    '<div class="group" id="f-cats">'+groups.map(g=>'<div class="cgroup">'+g+'</div><div class="cats">'+
+      CATS.filter(c=>c.g===g).map(c=>'<button type="button" data-cat="'+c.id+'" style="--c:'+c.c+'" aria-pressed="'+(c.id===cat)+'"><span class="cat">'+c.svg+'</span>'+c.label+'</button>').join("")+'</div>').join("")+'</div>'+
+    statusRows(b)+
+    '<div class="err" id="f-err"></div>'+
+    '<button class="primary" id="f-save">'+(b?"Änderungen sichern":"Rechnung hinzufügen")+'</button>'+
+    (b?'<button class="danger" id="f-del">Rechnung löschen</button>':'');
+  openSheet(b?"Rechnung bearbeiten":"Neue Rechnung", body, save);
+
+  const ph = {id: b && b.photo ? b.photo.id : null, blob:null, removed:false, url:null};
+  const pickBtn = (label)=>'<label class="photo-btn">'+IC_CAM+label+'<input type="file" accept="image/*" id="f-file"></label>';
+  async function renderPhotoBox(){
+    const box = $("f-photo"); if(!box) return;
+    if(ph.url){ URL.revokeObjectURL(ph.url); ph.url=null; }
+    const has = ph.blob || (ph.id && !ph.removed);
+    if(!has){
+      box.innerHTML = '<div class="photo-actions">'+pickBtn("Foto hinzufügen")+'</div><small class="hint" style="margin:0">Optional. Kamera, Fotos oder Dateien. Auf der Karte siehst du dann eine Büroklammer.</small>';
+    } else {
+      box.innerHTML = '<button type="button" class="photo-thumb" id="f-thumb">Beleg wird geladen …</button><div class="photo-actions">'+pickBtn("Ersetzen")+'<button type="button" class="photo-btn del" id="f-prm">Entfernen</button></div>';
+      $("f-prm").onclick = ()=>{ ph.blob=null; ph.removed=true; renderPhotoBox(); };
+      const blob = ph.blob || await getPhoto(ph.id);
+      const th = $("f-thumb"); if(!th) return;
+      if(blob){ ph.url = URL.createObjectURL(blob); th.innerHTML = '<img src="'+ph.url+'" alt="Beleg"><span class="zoom">Vergrößern</span>'; th.onclick = ()=>openViewer(blob); }
+      else th.textContent = syncOn() ? "Beleg konnte nicht geladen werden." : "Beleg liegt auf einem anderen Gerät. Mit Cloud-Sync wird er geladen.";
+    }
+    const fi = $("f-file");
+    if(fi) fi.onchange = async ()=>{
+      const f = fi.files && fi.files[0]; if(!f) return;
+      $("f-photo").insertAdjacentHTML("afterbegin",'<small class="hint" id="f-pbusy" style="margin:0">Bild wird verkleinert …</small>');
+      try{ ph.blob = await compressImage(f); ph.removed = false; }
+      catch(e){ $("f-err").textContent = "Das Bild konnte nicht gelesen werden. Versuche ein JPG oder ein Foto aus der Mediathek."; }
+      renderPhotoBox();
+    };
+  }
+  renderPhotoBox();
+
+  const amountIn = $("f-amount"), titleIn = $("f-title");
+  let titleTouched = !!(b && b.title);
+  const previewShares = ()=>{
+    const v = parseAmount(amountIn.value), d = $("f-date").value;
+    if(!(v>0) || !isISO(d)) return null;
+    const tmpId = b ? b.id : "__neu";
+    const tmp = S.bills.filter(x=>x.id!==tmpId).concat([{id:tmpId, date:d, amount:v, vorsorge:$("f-prev").checked, created: b ? b.created : Date.now(), kvSub: b ? b.kvSub : null}]);
+    const keep = SH; SH = computeShares(tmp);
+    const s = SH.map[tmpId], fy = yearInfo(d.slice(0,4));
+    SH = keep;
+    return {s, fy};
+  };
+  const updSplit = ()=>{
+    const p = previewShares();
+    if(!p){ $("f-split").textContent = "Wird anteilig bei Beihilfe ("+S.settings.bhPct+" %) und KV ("+(100-S.settings.bhPct)+" %) eingereicht."; return; }
+    let t = "Beihilfe "+money(p.s.bh)+(p.s.kdp>0?" (−"+money(p.s.kdp)+" Pauschale)":"")+" · KV "+money(p.s.kv);
+    if($("f-prev").checked) t += " – Vorsorge, jederzeit bei der KV einreichen";
+    else if(p.fy.mode==="hold") t += " – KV-Anteil für den Cashback zurückhalten";
+    else if(p.fy.mode==="worth") t += " – Einreichen bei der KV lohnt sich";
+    $("f-split").textContent = t;
+    SIDES.forEach(({k})=>{ const a=$("a-"+k); if(a) a.placeholder = amountStr(p.s[k]); });
+  };
+  amountIn.addEventListener("input", updSplit); $("f-date").addEventListener("change", updSplit);
+  $("f-prev").addEventListener("change", ()=>{ prevTouched = true; updSplit(); });
+  updSplit();
+  titleIn.addEventListener("input", ()=>{ titleTouched = titleIn.value.trim()!==""; });
+  $("f-cats").addEventListener("click", e=>{
+    const btn = e.target.closest("[data-cat]"); if(!btn) return;
+    cat = btn.dataset.cat;
+    $("f-cats").querySelectorAll("[data-cat]").forEach(x=>x.setAttribute("aria-pressed", x===btn));
+    if(!titleTouched) titleIn.placeholder = plainLabel(CAT[cat]);
+    if(!prevTouched){ $("f-prev").checked = (cat==="vorsorge"); updSplit(); }
+  });
+  $("sheetBody").querySelectorAll('.sw input[data-k]').forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      const k=cb.dataset.k, f=cb.dataset.f;
+      if(f==="Sub"){ $("d-"+k+"Sub").hidden = !cb.checked; if(cb.checked && !$("d-"+k+"Sub").value) $("d-"+k+"Sub").value=todayISO(); }
+      if(f==="Paid"){ $("pb-"+k).hidden = !cb.checked; if(cb.checked && !$("d-"+k+"Paid").value) $("d-"+k+"Paid").value=todayISO(); }
+      if(f==="Paid" && cb.checked && !$("c-"+k+"Sub").checked){ $("c-"+k+"Sub").checked=true; $("d-"+k+"Sub").hidden=false; if(!$("d-"+k+"Sub").value) $("d-"+k+"Sub").value=todayISO(); }
+      if(f==="Sub" && !cb.checked){ $("c-"+k+"Paid").checked=false; $("pb-"+k).hidden=true; }
+    });
+  });
+  $("sheetBody").querySelectorAll("[data-zero]").forEach(btn=>btn.addEventListener("click", ()=>{ $("a-"+btn.dataset.zero).value = "0,00"; }));
+  $("f-save").addEventListener("click", save);
+  if(b){
+    const del = $("f-del"); let armed=false;
+    del.addEventListener("click", ()=>{
+      if(!armed){ armed=true; del.classList.add("confirm"); del.textContent="Wirklich löschen? Nochmal tippen"; setTimeout(()=>{ if(armed){ armed=false; del.classList.remove("confirm"); del.textContent="Rechnung löschen"; } },4000); return; }
+      closeSheet(); deleteBill(b.id);
+    });
+  }
+
+  async function save(){
+    const amount = parseAmount(amountIn.value);
+    const date = $("f-date").value;
+    const err = $("f-err");
+    if(!(amount>0)){ err.textContent="Bitte einen Betrag eintragen, z. B. 49,05."; amountIn.focus(); return; }
+    if(!isISO(date)){ err.textContent="Bitte das Behandlungsdatum wählen."; return; }
+    const p = previewShares();
+    const n = {
+      id: b ? b.id : uid(), date, amount, cat,
+      title: titleIn.value.trim() || plainLabel(CAT[cat]),
+      note: $("f-note").value.trim(), vorsorge: $("f-prev").checked,
+      created: b ? b.created : Date.now()
+    };
+    for(const {k,long} of SIDES){
+      for(const f of ["Sub","Paid"]){
+        const on = $("c-"+k+f).checked, d = $("d-"+k+f).value, old = b ? b[k+f] : null;
+        n[k+f] = on ? (isISO(d) ? d : (old || true)) : null;
+      }
+      n[k+"Amt"] = null;
+      if(n[k+"Paid"]){
+        const raw = $("a-"+k).value.trim();
+        if(raw!==""){
+          const v = parseAmount(raw);
+          if(!(v>=0)){ err.textContent = long+": bitte den erstatteten Betrag wie 12,50 eintragen."; return; }
+          if(!p || Math.abs(v - p.s[k]) > 0.004) n[k+"Amt"] = v;
+        }
+      }
+    }
+    const oldPhoto = b && b.photo ? b.photo.id : null;
+    n.photo = oldPhoto && !ph.removed ? {id:oldPhoto} : null;
+    if(ph.blob){
+      const pid = "p"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+      if(!(await photoPut(pid, ph.blob))){ err.textContent = "Das Foto konnte auf diesem Gerät nicht gespeichert werden."; return; }
+      n.photo = {id:pid}; queuePhoto("up", pid);
+    }
+    if(oldPhoto && (!n.photo || n.photo.id!==oldPhoto)) setTimeout(()=>dropPhotoIfUnused(oldPhoto), 8000);
+    if(!b && n.kvSub && !n.vorsorge && p && p.fy.mode==="hold"){
+      confirmCashback(n, ()=>{ upsertBill(n); showToast("Rechnung über "+money(amount)+" hinzugefügt", null); });
+      return;
+    }
+    upsertBill(n); closeSheet();
+    showToast(b ? "Gesichert" : "Rechnung über "+money(amount)+" hinzugefügt", null);
+  }
+}
+
+/* ---------- Einstellungen ---------- */
+function openSettings(){
+  const st = S.settings;
+  let pct = st.bhPct, kdp = st.kdp;
+  const cbYears = [...new Set(Object.keys(st.cb||{}).concat(S.bills.map(yearOf)).concat([thisYear()]))].filter(Boolean).sort().reverse();
+  const body =
+    '<div class="glabel">Cloud-Sync</div>'+
+    '<div class="group"><div class="st-row link" id="s-sync"><div class="nm">'+(syncOn()?'Mit GitHub verbunden':'GitHub-Sync einrichten')+'<small>'+(syncOn()?esc(SY.owner)+'/'+esc(SY.repo)+(syncAt?' · '+agoTxt(syncAt):''):'Daten auf iPhone und iPad gleich halten')+'</small></div><span class="chev">›</span></div></div>'+
+    '<div class="glabel">Beihilfe</div>'+
+    '<div class="group"><div class="st-row"><div class="nm">Beihilfe-Anteil<small id="s-kv">Krankenversicherung übernimmt '+(100-pct)+' %</small></div>'+
+    '<div class="stepper"><button id="s-minus" aria-label="Weniger">−</button><b class="num" id="s-val">'+pct+' %</b><button id="s-plus" aria-label="Mehr">+</button></div></div>'+
+    '<div class="st-row"><div class="nm">Kostendämpfungs&shy;pauschale<small>Eigenanteil pro Jahr, 0 € = aus</small></div>'+
+    '<div class="stepper"><button id="k-minus" aria-label="10 € weniger">−</button><b class="num" id="k-val">'+kdp+' €</b><button id="k-plus" aria-label="10 € mehr">+</button></div></div></div>'+
+    '<div class="glabel">HUK-Cashback (Beitragsrückerstattung)</div>'+
+    '<div class="group"><div class="st-row"><div class="nm">Cashback berücksichtigen<small>KV-Anteile zurückhalten, solange der Cashback mehr bringt</small></div>'+
+    '<label class="sw"><input type="checkbox" id="cb-on" '+(st.cbOn?'checked':'')+' aria-label="Cashback berücksichtigen"><span></span></label></div>'+
+    cbYears.map(y=>{ const own = st.cb && typeof st.cb[y]==="number";
+      return '<div class="st-row"><div class="nm">Cashback für '+y+'<small>'+(own?'Auszahlung '+(+y+1):'leer = Schätzung mit '+money(cbFor(y).v))+'</small></div>'+
+      '<label class="eur"><input id="cb-'+y+'" class="num" inputmode="decimal" placeholder="'+amountStr(cbFor(y).v)+'" value="'+(own?amountStr(st.cb[y]):"")+'" aria-label="Cashback für '+y+' in Euro">€</label></div>'; }).join("")+
+    '</div>'+
+    '<div class="glabel">Daten</div>'+
+    '<div class="group"><div class="st-row link" id="s-report"><div class="nm">Jahresbericht<small>Als PDF oder Bild sichern</small></div><span class="chev">›</span></div>'+
+    '<div class="st-row"><div class="nm">Als Tabelle kopieren<small>Zum Einfügen in Numbers oder Excel</small></div><button class="chip" id="s-copy" style="color:var(--accent)">Kopieren</button></div>'+
+    '<div class="st-row"><div class="nm">Sicherung kopieren<small>Alle Daten als Text, z. B. für die Notizen-App</small></div><button class="chip" id="s-backup" style="color:var(--accent)">Kopieren</button></div>'+
+    '<div class="st-row link" id="s-restore"><div class="nm">Sicherung einfügen<small>Ersetzt die Daten auf diesem Gerät</small></div><span class="chev">›</span></div></div>'+
+    '<div class="err" id="s-err"></div>'+
+    '<button class="primary" id="s-done">Sichern</button>'+
+    '<p class="hint">Zum Schließen ohne Änderungen nach unten wischen.</p>';
+  openSheet("Einstellungen", body, null, null, "Schließen");
+  const upd = ()=>{ $("s-val").textContent = pct+" %"; $("s-kv").textContent = "Krankenversicherung übernimmt "+(100-pct)+" %"; };
+  $("s-minus").onclick = ()=>{ pct=Math.max(0,pct-5); upd(); };
+  $("s-plus").onclick = ()=>{ pct=Math.min(100,pct+5); upd(); };
+  $("k-minus").onclick = ()=>{ kdp=Math.max(0,kdp-10); $("k-val").textContent=kdp+" €"; };
+  $("k-plus").onclick = ()=>{ kdp=Math.min(1000,kdp+10); $("k-val").textContent=kdp+" €"; };
+  $("s-sync").onclick = syncSheet;
+  $("s-restore").onclick = restoreSheet;
+  $("s-report").onclick = ()=>openReport(focusYear());
+  $("s-done").onclick = ()=>{
+    const cb = {};
+    for(const y of cbYears){
+      const raw = $("cb-"+y).value.trim();
+      if(raw==="") continue;
+      const v = parseAmount(raw);
+      if(!(v>=0)){ $("s-err").textContent = "Cashback für "+y+": bitte einen Betrag wie 506,69 eintragen."; return; }
+      cb[y] = v;
+    }
+    S.settings = Object.assign({}, S.settings, {bhPct:pct, kdp:kdp, cbOn:$("cb-on").checked, cb});
+    save(); closeSheet(); showToast("Einstellungen gesichert", null);
+  };
+  const copy = async (btn, text)=>{ try{ await navigator.clipboard.writeText(text); btn.textContent="Kopiert"; }catch(e){ btn.textContent="Nicht möglich"; } };
+  $("s-copy").onclick = ()=>{
+    const rows = [["Behandlungsdatum","Bezeichnung","Fachrichtung","Vorsorge","Betrag","Beihilfe","Pauschale","Beihilfe eingereicht","Beihilfe erstattet","Beihilfe erhalten","KV","KV eingereicht","KV erstattet","KV erhalten"]];
+    S.bills.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(b=>{
+      const sh=shares(b), d=v=>v?(isISO(v)?fmtDate(v):"ja"):"";
+      rows.push([fmtDate(b.date),b.title,plainLabel(catOf(b.cat)),b.vorsorge?"ja":"",amountStr(b.amount),amountStr(sh.bh),amountStr(sh.kdp),d(b.bhSub),d(b.bhPaid),b.bhPaid?amountStr(received(b,"bh")):"",amountStr(sh.kv),d(b.kvSub),d(b.kvPaid),b.kvPaid?amountStr(received(b,"kv")):""]);
+    });
+    copy($("s-copy"), rows.map(r=>r.join("\t")).join("\n"));
+  };
+  $("s-backup").onclick = ()=>copy($("s-backup"), JSON.stringify(S));
+}
+function restoreSheet(){
+  openSheet("Sicherung einfügen",
+    '<div class="group"><div class="field"><label for="r-text">Sicherung (Text)</label><textarea id="r-text" placeholder="{&quot;bills&quot;:[…]}" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div></div>'+
+    '<div class="err" id="r-err"></div>'+
+    '<button class="primary" id="r-go">Daten übernehmen</button>'+
+    '<p class="hint">Die aktuellen Daten auf diesem Gerät werden ersetzt. Ist Cloud-Sync aktiv, wird die Sicherung auch hochgeladen.</p>', null);
+  $("r-go").onclick = ()=>{
+    try{
+      const o = JSON.parse($("r-text").value);
+      if(!o || !Array.isArray(o.bills)) throw 0;
+      const before = JSON.parse(JSON.stringify(S));
+      adoptState(o); save(); closeSheet();
+      showToast(S.bills.length+" Rechnungen übernommen", ()=>{ adoptState(before); save(); });
+    }catch(e){ $("r-err").textContent = "Das ist keine gültige Sicherung. Kopiere den ganzen Text aus „Sicherung kopieren“."; }
+  };
+}
+
+/* ---------- Cloud-Sync einrichten ---------- */
+let SC = null;
+function syncSheet(){
+  const on = syncOn();
+  const head = '<div class="syncinfo '+syncState+'"><span class="dot"></span><div><b>'+(on?(syncState==="ok"?"Verbunden und synchronisiert":syncState==="error"?"Verbunden, aber Fehler":"Verbunden"):"Nicht verbunden")+'</b>'+
+    '<small>'+(on ? esc(SY.owner)+'/'+esc(SY.repo)+(syncAt?'<br>Zuletzt synchronisiert um '+new Date(syncAt).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+' Uhr ('+agoTxt(syncAt)+')':'')+(!navigator.onLine?'<br>Gerade offline, Änderungen werden später hochgeladen.':'') : 'Daten liegen nur auf diesem Gerät.')+'</small>'+
+    (on?'<small>'+(SY.key?'Verschlüsselt mit deinem Passwort':'Nicht verschlüsselt')+'</small>':'')+
+    (syncState==="error"&&syncErr?'<small class="neg">'+esc(syncErr)+'</small>':'')+'</div></div>';
+  if(on){
+    openSheet("Cloud-Sync", head+
+      '<button class="primary" id="sy-now">Jetzt synchronisieren</button>'+
+      '<button class="secondary" id="sy-token">Token ändern</button>'+
+      '<button class="danger" id="sy-off">Verbindung trennen</button>'+
+      '<p class="hint">Änderungen werden nach etwa einer Sekunde hochgeladen, andere Geräte holen sie alle drei Sekunden ab.</p>', null);
+    $("sy-now").onclick = ()=>{ pullNow(true).then(()=>{ if(!dirty) pushNow(); }); showToast("Synchronisiere …", null); };
+    $("sy-token").onclick = ()=>{ SY.token=""; saveSY(); syncSheet(); };
+    $("sy-off").onclick = ()=>{ SY=null; saveSY(); setSync("local"); closeSheet(); render(); showToast("Cloud-Sync getrennt", null); };
+    return;
+  }
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone;
+  openSheet("Cloud-Sync", head+
+    (inPreview?'<div class="warnbox">Du siehst gerade die Vorschau in Claude. Der GitHub-Sync funktioniert erst in der Version, die auf GitHub Pages läuft.</div>':'')+
+    '<div class="flabel">GitHub-Benutzername</div><input class="inp" id="syO" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(SY&&SY.owner||"")+'" placeholder="z. B. alexander-mustermann">'+
+    '<div class="flabel">Name des privaten Daten-Repositorys</div><input class="inp" id="syR" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(SY&&SY.repo||"erstattungen-data")+'">'+
+    '<div class="flabel">Token (beginnt mit github_pat_)</div><input class="inp" id="syT" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…">'+
+    '<div class="flabel">Verschlüsselungs-Passwort (mind. 10 Zeichen)</div><input class="inp" id="syP" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Auf allen Geräten gleich">'+
+    '<button class="primary" id="sy-go">Verbinden</button>'+
+    (ios?'<div class="warnbox">Du bist gerade in Safari. Öffne die App über das Icon auf dem Home-Bildschirm und verbinde dort, sonst wirst du dort erneut gefragt.</div>':'')+
+    '<p class="hint">Token und Passwort bleiben nur auf diesem Gerät. In GitHub liegt nur verschlüsselter Text. Das Passwort gut merken: Ohne es lassen sich die Cloud-Daten nicht mehr öffnen.</p>', null);
+  $("sy-go").onclick = syncConnect;
+}
+async function syncConnect(){
+  const o=$("syO").value.trim(), r=$("syR").value.trim(), t=$("syT").value.trim(), pw=$("syP").value;
+  if(!o||!r||!t){ showToast("Bitte Benutzername, Repository und Token ausfüllen", null); return; }
+  if(pw && pw.length<10){ showToast("Das Passwort sollte mindestens 10 Zeichen haben", null); return; }
+  const prev = SY; let validated = false;
+  SY = {owner:o, repo:r, token:t, path:"erstattungen.json"};
+  showToast("Prüfe Verbindung …", null);
+  try{
+    const rr = await fetch("https://api.github.com/repos/"+encodeURIComponent(o)+"/"+encodeURIComponent(r),{headers:ghH(),cache:"no-store"});
+    if(rr.status===401) throw "Der Token ist ungültig oder abgelaufen.";
+    if(rr.status===404) throw "Repository nicht gefunden. Prüfe Benutzername, Repository-Name und ob der Token Zugriff auf dieses Repository hat.";
+    if(!rr.ok) throw "GitHub antwortet mit Fehler "+rr.status+".";
+    validated = true; saveSY();
+    const g = await fetch(ghUrl(),{headers:ghH(),cache:"no-store"});
+    if(g.status===404){
+      if(pw){ SY.salt=b64s(crypto.getRandomValues(new Uint8Array(16))); SY.key=await deriveKey(pw,SY.salt); }
+      SY.sha=null; saveSY(); await pushNow();
+      if(syncState==="ok"){ closeSheet(); render(); showToast("Verbunden. Deine Daten liegen jetzt in der Cloud", null); } else syncSheet();
+      return;
+    }
+    if(!g.ok) throw "Fehler "+g.status+" beim Lesen der Daten.";
+    const j = await g.json(); const txt = dec(j.content); const raw = JSON.parse(txt); let remote;
+    if(raw && raw.enc){
+      if(!pw) throw "Die Cloud-Daten sind verschlüsselt. Bitte dein Passwort eingeben.";
+      showToast("Entschlüssele …", null);
+      SY.salt = raw.salt; SY.key = await deriveKey(pw, raw.salt);
+      try{ remote = await unpackData(txt, SY.key); }catch(e){ throw "Das Passwort ist falsch."; }
+    } else {
+      remote = raw;
+      if(pw){ SY.salt=b64s(crypto.getRandomValues(new Uint8Array(16))); SY.key=await deriveKey(pw,SY.salt); }
+    }
+    SC = {sha:j.sha, remote}; saveSY();
+    const when = remote._ts ? new Date(remote._ts).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "unbekannt";
+    openSheet("Daten in der Cloud gefunden",
+      '<p class="hint">In deinem Repository liegen schon Daten (Stand '+when+', '+((remote.bills||[]).length)+' Rechnungen). Was soll passieren?</p>'+
+      '<button class="primary" id="sc-take">Cloud-Daten übernehmen</button><p class="hint">Empfohlen auf dem zweiten Gerät, z. B. dem iPad.</p>'+
+      '<button class="secondary" id="sc-up">Dieses Gerät hochladen</button><p class="hint">Überschreibt die Daten in der Cloud mit denen von diesem Gerät.</p>', null);
+    $("sc-take").onclick = ()=>{ SY.sha=SC.sha; saveSY(); adoptRemote(SC.remote); closeSheet(); setSync("ok"); processPQ(); showToast("Cloud-Daten übernommen", null); };
+    $("sc-up").onclick = ()=>{ SY.sha=SC.sha; saveSY(); S._ts=Date.now(); persist(); pushNow().then(()=>{ closeSheet(); render(); showToast("Dieses Gerät hochgeladen", null); }); };
+  }catch(e){
+    const pwErr = typeof e==="string" && /Passwort/.test(e);
+    if(!validated || pwErr){ SY=prev; saveSY(); } else saveSY();
+    showToast(typeof e==="string" ? e : (inPreview ? "In der Claude-Vorschau ist GitHub nicht erreichbar" : "Keine Verbindung zu GitHub möglich"), null);
+  }
+}
+
+$("btnSettings").addEventListener("click", openSettings);
+$("syncbar").addEventListener("click", syncSheet);
+$("btnAdd").addEventListener("click", ()=>openForm(null));
+
+/* ---------- Belege: Fotos verkleinern, lokal speichern, über GitHub synchronisieren ---------- */
+const PQ_KEY = "erst_photoq";
+let PQ = (()=>{ try{ return JSON.parse(localStorage.getItem(PQ_KEY)||"[]"); }catch(e){ return []; } })();
+const savePQ = ()=>{ try{ localStorage.setItem(PQ_KEY, JSON.stringify(PQ)); }catch(e){} };
+const photoUrl = id=>"https://api.github.com/repos/"+encodeURIComponent(SY.owner)+"/"+encodeURIComponent(SY.repo)+"/contents/belege/"+encodeURIComponent(id)+".bin";
+function queuePhoto(op, id){ PQ = PQ.filter(x=>x.id!==id); PQ.push({op, id}); savePQ(); processPQ(); }
+let pqBusy = false;
+async function processPQ(){
+  if(pqBusy || !syncOn() || !navigator.onLine || !PQ.length) return;
+  pqBusy = true;
+  try{
+    while(PQ.length){
+      const it = PQ[0];
+      if(it.op==="up"){
+        const blob = await photoGetLocal(it.id);
+        if(blob){
+          const r = await fetch(photoUrl(it.id),{method:"PUT",headers:ghH({"Content-Type":"application/json"}),body:JSON.stringify({message:"Beleg "+it.id, content:await packPhoto(blob)}),cache:"no-store"});
+          if(!r.ok && r.status!==422) throw r.status;
+        }
+      } else {
+        const g = await fetch(photoUrl(it.id),{headers:ghH(),cache:"no-store"});
+        if(g.ok){
+          const j = await g.json();
+          const r = await fetch(photoUrl(it.id),{method:"DELETE",headers:ghH({"Content-Type":"application/json"}),body:JSON.stringify({message:"Beleg entfernt", sha:j.sha}),cache:"no-store"});
+          if(!r.ok && r.status!==404) throw r.status;
+        } else if(g.status!==404) throw g.status;
+      }
+      PQ.shift(); savePQ();
+    }
+  }catch(e){} finally{ pqBusy = false; }
+}
+setInterval(()=>{ if(!document.hidden) processPQ(); }, 15000);
+async function packPhoto(blob){
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const k = await cryptoKey();
+  if(!k) return b64s(bytes);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, k, bytes);
+  return enc(JSON.stringify({enc:"aes-256-gcm", iv:b64s(iv), data:b64s(ct)}));
+}
+async function fetchPhoto(id){
+  if(!syncOn()) return null;
+  const r = await fetch(photoUrl(id),{headers:ghH({"Accept":"application/vnd.github.raw"}),cache:"no-store"});
+  if(!r.ok) return null;
+  const buf = new Uint8Array(await r.arrayBuffer());
+  if(buf[0]===123){
+    const o = JSON.parse(new TextDecoder().decode(buf)); const k = await cryptoKey(); if(!k) return null;
+    const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64s(o.iv)}, k, unb64s(o.data));
+    return new Blob([pt], {type:"image/jpeg"});
+  }
+  return new Blob([buf], {type:"image/jpeg"});
+}
+async function getPhoto(id){
+  let b = await photoGetLocal(id); if(b) return b;
+  try{ b = await fetchPhoto(id); if(b){ await photoPut(id, b); return b; } }catch(e){}
+  return null;
+}
+function dropPhotoIfUnused(id){
+  if(S.bills.some(b=>b.photo && b.photo.id===id)) return;
+  photoDelLocal(id);
+  if(syncOn()) queuePhoto("del", id); else { PQ = PQ.filter(x=>x.id!==id); savePQ(); }
+}
+async function compressImage(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((res,rej)=>{ const i = new Image(); i.onload = ()=>res(i); i.onerror = rej; i.src = url; });
+    const sc = Math.min(1, 1800/Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth*sc); c.height = Math.round(img.naturalHeight*sc);
+    const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+    const out = await new Promise(res=>c.toBlob(res, "image/jpeg", 0.78));
+    if(!out) throw 0;
+    return out;
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ---------- Vollbild-Ansicht für Belege ---------- */
+let viewerUrl = null;
+function openViewer(blob){
+  if(viewerUrl) URL.revokeObjectURL(viewerUrl);
+  viewerUrl = URL.createObjectURL(blob);
+  $("viewerImg").src = viewerUrl; $("viewer").hidden = false;
+}
+function closeViewer(){ $("viewer").hidden = true; }
+$("viewerClose").addEventListener("click", closeViewer);
+$("viewer").addEventListener("click", e=>{ if(e.target.id==="viewer") closeViewer(); });
+(function(){ let y0 = null; const v = $("viewer");
+  v.addEventListener("touchstart", e=>{ y0 = e.touches.length===1 ? e.touches[0].clientY : null; }, {passive:true});
+  v.addEventListener("touchend", e=>{ if(y0==null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null; if(dy > 110) closeViewer(); });
+})();
+
+/* ---------- Seiten: Startseite und Rechnungen ---------- */
+function goPage(pg, noScroll){
+  ui.page = pg;
+  $("pageHome").hidden = pg!=="home"; $("pageBills").hidden = pg!=="bills";
+  document.querySelectorAll(".tabbar [data-tab]").forEach(b=>{ if(b.dataset.tab===pg) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  $("topbar").querySelector(".mini").textContent = pg==="bills" ? "Rechnungen" : "Erstattungen";
+  closeOpenRow();
+  try{ if(pg==="bills"){ if(location.hash!=="#rechnungen") location.hash = "rechnungen"; } else if(location.hash) location.hash = "start"; }catch(e){}
+  if(!noScroll) window.scrollTo(0,0);
+  $("topbar").classList.toggle("scrolled", window.scrollY > 40);
+}
+document.querySelectorAll(".tabbar [data-tab]").forEach(b=>b.addEventListener("click", ()=>{
+  if(ui.page===b.dataset.tab) window.scrollTo({top:0, behavior:"smooth"}); else goPage(b.dataset.tab);
+}));
+window.addEventListener("hashchange", ()=>{ const want = location.hash==="#rechnungen" ? "bills" : "home"; if(want!==ui.page) goPage(want); });
+
+/* ---------- Start ---------- */
+(async function start(){
+  const had = load();
+  if(!had){
+    const fromIdb = await idbGet(LS_KEY);
+    if(fromIdb){ try{ adoptState(JSON.parse(fromIdb)); persist(); }catch(e){} }
+    if(!SY){ const s = await idbGet(SYNC_KEY); if(s){ try{ SY = JSON.parse(s); saveSY(); }catch(e){} } }
+  }
+  ui.page = "home";
+  render();
+  if(location.hash==="#rechnungen") goPage("bills", true);
+  if(syncOn()){ initialPulled=false; bootTs=S._ts||0; setSync("saving"); setTimeout(finishBoot,4000); pullNow("boot"); }
+  else setSync("local");
+})();
+})();
+</script>
+</body>
+</html>
